@@ -66,13 +66,16 @@ export class GridAnalyzer {
   /**
    * Y座標から時刻を計算（15分単位にスナップ）
    *
-   * @param {number} y - ページ内のY座標
+   * @param {number} y - ビューポート内のY座標（clientY）
    * @param {HTMLElement} columnElement - 対象の日付列要素
    * @returns {TimeCoordinate} 時刻オブジェクト（hour, minute）
+   *
+   * Note: getBoundingClientRect()とclientYは両方ともビューポート相対座標なので
+   * scrollYの調整は不要（以前はscrollYを追加していたが、これがNaNバグの原因だった）
    */
   getTimeFromY(y: number, columnElement: HTMLElement): TimeCoordinate {
     const rect = columnElement.getBoundingClientRect();
-    const relativeY = y - (rect.top + window.scrollY);
+    const relativeY = y - rect.top;
 
     // 総分数に変換
     const totalMinutes = (relativeY / this.gridCache.hourHeight) * 60;
