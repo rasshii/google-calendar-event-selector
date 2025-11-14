@@ -56,3 +56,9 @@ temp/
 .env
 .env.local
 .env.*.local
+
+# Node.js
+node_modules/
+
+# Build output
+dist/
