@@ -298,4 +298,5 @@
 
 .gcal-calendar-overlay.active {
   opacity: 1;
+  pointer-events: auto;
 }
