@@ -8,7 +8,7 @@ import { GridAnalyzer } from './grid-analyzer';
 import { SlotManager } from './slot-manager';
 import { SelectionModeManager } from './selection-mode-manager';
 import { updateTempOverlay, removeTempOverlay, createSelectionOverlay } from '@/ui/overlay';
-import { isEventTargetInPanel } from '@/utils/dom';
+import { isEventTargetInPanel, isEmptyGridSpace } from '@/utils/dom';
 
 export class DragHandler {
   private dragState: DragState = {
@@ -61,6 +61,13 @@ export class DragHandler {
 
   /**
    * マウスダウンハンドラー
+   *
+   * 選択モードがONの場合、空のグリッドスペースでのみドラッグ選択を開始します。
+   * 以下の場合は何もせず、通常のGoogle Calendar操作を許可します：
+   * - 選択モードがOFF
+   * - パネル内のクリック
+   * - 既存のカレンダーイベントのクリック
+   * - カレンダーUI要素（ナビゲーション、時間ラベルなど）のクリック
    */
   private handleMouseDown = (e: MouseEvent): void => {
     // 選択モードがOFFの場合は何もしない
@@ -72,10 +79,15 @@ export class DragHandler {
     // パネルドラッグ中は無視
     if (this.panelDragState.isDragging) return;
 
+    // 空のグリッドスペース以外（既存イベント、UI要素など）は許可
+    // これにより、カレンダーの通常操作（イベントクリック、スクロールなど）が可能
+    if (!isEmptyGridSpace(e.target)) return;
+
     const column = this.gridAnalyzer.getColumnFromX(e.clientX);
     if (!column) return;
 
-    // Google Calendarのイベントハンドラーを完全にブロック
+    // 空のグリッドスペースでのイベントのみブロック
+    // Google Calendarの新規イベント作成ダイアログを防ぐ
     e.stopImmediatePropagation();
     e.preventDefault();
 

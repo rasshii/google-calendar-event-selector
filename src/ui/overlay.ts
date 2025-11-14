@@ -5,7 +5,6 @@
 import type { TimeSlot, GridColumn } from '@/types';
 import { CSS_CLASSES, COLORS, Z_INDEX } from '@/config';
 import { GridAnalyzer } from '@/core/grid-analyzer';
-import { isEventTargetInPanel } from '@/utils/dom';
 
 /**
  * 一時的な選択オーバーレイを作成・更新
@@ -93,64 +92,13 @@ export function createSelectionOverlay(
 }
 
 /**
- * カレンダー全体のオーバーレイを作成（選択モード表示用）
+ * NOTE: Full-screen calendar overlay has been removed to allow normal calendar interactions.
+ * Event blocking is now handled by DragHandler's intelligent filtering which only blocks
+ * clicks on empty grid spaces, while allowing:
+ * - Scrolling
+ * - Clicking existing events
+ * - Calendar navigation
+ * - Other Google Calendar UI interactions
  *
- * 選択モードON時にGoogle Calendarのデフォルト動作を完全にブロックする
- * フルスクリーンのオーバーレイを作成し、以下の機能を提供：
- *
- * - **イベントインターセプション**: mousedown, click, pointerdown, touchstartイベントを
- *   キャプチャフェーズで捕捉し、Google Calendarのイベントハンドラーより先に実行
- * - **パネル操作の保護**: 拡張機能のパネル内のクリックは許可し、カレンダーエリアのみブロック
- * - **z-index制御**: activeクラス時にz-index: 100000でGoogle Calendarの要素より前面に配置
- *
- * @returns 作成されたオーバーレイ要素
- *
- * @example
- * ```typescript
- * const overlay = createCalendarOverlay();
- * toggleCalendarOverlay(overlay, true); // 選択モードON
- * ```
- *
- * @see {@link toggleCalendarOverlay} オーバーレイの表示/非表示を切り替える
+ * This approach provides better UX while still preventing unwanted event creation.
  */
-export function createCalendarOverlay(): HTMLElement {
-  const overlay = document.createElement('div');
-  overlay.className = CSS_CLASSES.CALENDAR_OVERLAY;
-
-  /**
-   * イベントをインターセプトする関数
-   * パネル内のクリックは許可し、カレンダーエリアのみブロック
-   */
-  const interceptEvent = (e: Event) => {
-    // オーバーレイが非アクティブなら何もしない
-    if (!overlay.classList.contains('active')) return;
-
-    // パネル内のクリックは許可（トグルボタンなどの操作を可能にする）
-    if (isEventTargetInPanel(e.target)) return;
-
-    // カレンダーエリアのイベントは完全にブロック
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    e.preventDefault();
-  };
-
-  // 複数のイベントタイプをインターセプト（キャプチャフェーズで最優先実行）
-  overlay.addEventListener('mousedown', interceptEvent, { capture: true });
-  overlay.addEventListener('click', interceptEvent, { capture: true });
-  overlay.addEventListener('pointerdown', interceptEvent, { capture: true });
-  overlay.addEventListener('touchstart', interceptEvent, { capture: true });
-
-  document.body.appendChild(overlay);
-  return overlay;
-}
-
-/**
- * カレンダーオーバーレイの表示/非表示を切り替え
- */
-export function toggleCalendarOverlay(overlay: HTMLElement, isActive: boolean): void {
-  if (isActive) {
-    overlay.classList.add('active');
-  } else {
-    overlay.classList.remove('active');
-  }
-}

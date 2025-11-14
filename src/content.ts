@@ -15,7 +15,6 @@ import { SlotManager } from './core/slot-manager';
 import { SelectionModeManager } from './core/selection-mode-manager';
 import { createUIPanel } from './ui/panel';
 import { showErrorNotification } from './ui/notification';
-import { createCalendarOverlay, toggleCalendarOverlay } from './ui/overlay';
 
 /**
  * アプリケーションクラス
@@ -26,7 +25,6 @@ class TimeSlotSelectorApp {
   private selectionModeManager: SelectionModeManager;
   private dragHandler: DragHandler;
   private panel: HTMLElement | null = null;
-  private calendarOverlay: HTMLElement | null = null;
 
   constructor() {
     this.gridAnalyzer = new GridAnalyzer();
@@ -65,17 +63,9 @@ class TimeSlotSelectorApp {
       // Create UI panel
       this.panel = createUIPanel(this.dragHandler.getPanelDragState(), this.selectionModeManager);
 
-      // Create calendar overlay
-      this.calendarOverlay = createCalendarOverlay();
-
-      // Listen to selection mode changes and toggle overlay
-      this.selectionModeManager.addListener((isActive) => {
-        if (this.calendarOverlay) {
-          toggleCalendarOverlay(this.calendarOverlay, isActive);
-        }
-      });
-
       // Attach drag listeners
+      // Event filtering in drag handler now allows normal calendar interactions
+      // while blocking only new event creation on empty grid spaces
       this.dragHandler.attachListeners();
 
       console.log(getMessage('initSuccess'));
@@ -120,11 +110,6 @@ class TimeSlotSelectorApp {
     if (this.panel) {
       this.panel.remove();
       this.panel = null;
-    }
-
-    if (this.calendarOverlay) {
-      this.calendarOverlay.remove();
-      this.calendarOverlay = null;
     }
 
     console.log('Google Calendar Time Slot Selector cleaned up');
