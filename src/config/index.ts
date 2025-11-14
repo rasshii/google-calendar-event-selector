@@ -14,6 +14,7 @@ export const CONFIG = {
   // Google Calendar固有の値
   GCAL_HOUR_HEIGHT_PX: 48,
   GCAL_START_HOUR: 0,
+  HOURS_IN_DAY: 24,  // 1日の時間数
 
   // スナップ設定
   SNAP_MINUTES: 15,
@@ -35,6 +36,7 @@ export const SELECTORS = {
   PANEL_CONTENT: '.gcal-selector-content',
   EVENT_LIST: '#gcal-selected-events',
   MINIMIZE_BTN: '#gcal-selector-minimize',
+  SELECTION_MODE_BTN: '#gcal-selection-mode-btn',
   COPY_BTN: '#gcal-copy-btn',
   CLEAR_BTN: '#gcal-clear-btn',
 } as const;
@@ -54,31 +56,38 @@ export const CSS_CLASSES = {
   BTN_PRIMARY: 'gcal-btn-primary',
   BTN_SECONDARY: 'gcal-btn-secondary',
   ACTIONS: 'gcal-selector-actions',
+  SELECTION_MODE_BTN: 'gcal-selection-mode-btn',
+  SELECTION_MODE_ACTIVE: 'gcal-selection-mode-active',
   SELECTION_OVERLAY: 'gcal-selection-overlay',
   TEMP_OVERLAY: 'gcal-temp-overlay',
+  CALENDAR_OVERLAY: 'gcal-calendar-overlay',
 } as const;
 
 export const MESSAGES: MessagesMap = {
   ja: {
     panelTitle: '📅 時間選択',
-    emptyMessage: 'カレンダー上をドラッグして時間を選択してください',
+    emptyMessage: '選択モードをONにして、カレンダー上をドラッグしてください',
     copyButton: '📋 コピー',
     clearButton: '🗑️ クリア',
     copiedSuccess: '✓ コピーしました！',
+    selectionModeOn: '🎯 選択モード ON',
+    selectionModeOff: '⏸️ 選択モード OFF',
     errorCopyFailed: 'クリップボードへのコピーに失敗しました',
     errorInitFailed: '拡張機能の初期化に失敗しました',
-    initSuccess: 'Google Calendar Time Slot Selector が初期化されました\nカレンダー上をドラッグして時間を選択できます',
+    initSuccess: 'Google Calendar Time Slot Selector が初期化されました\n選択モードをONにしてドラッグで時間を選択できます',
     calendarNotFound: 'Google Calendar Time Slot Selector: カレンダーが見つかりませんでした',
   },
   en: {
     panelTitle: '📅 Time Selector',
-    emptyMessage: 'Drag on the calendar to select time slots',
+    emptyMessage: 'Turn ON selection mode and drag on the calendar',
     copyButton: '📋 Copy',
     clearButton: '🗑️ Clear',
     copiedSuccess: '✓ Copied!',
+    selectionModeOn: '🎯 Selection Mode ON',
+    selectionModeOff: '⏸️ Selection Mode OFF',
     errorCopyFailed: 'Failed to copy to clipboard',
     errorInitFailed: 'Failed to initialize extension',
-    initSuccess: 'Google Calendar Time Slot Selector initialized\nDrag on the calendar to select time slots',
+    initSuccess: 'Google Calendar Time Slot Selector initialized\nTurn ON selection mode and drag to select time slots',
     calendarNotFound: 'Google Calendar Time Slot Selector: Calendar not found',
   },
 };

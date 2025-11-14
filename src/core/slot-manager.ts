@@ -50,6 +50,10 @@ export class SlotManager {
 
   /**
    * 重複チェック
+   * 既存のスロットと同じ日付・時刻範囲のスロットが存在するかをチェック
+   *
+   * @param {TimeSlot} newSlot - チェック対象の新しいスロット
+   * @returns {boolean} 重複がある場合true、ない場合false
    */
   isDuplicate(newSlot: TimeSlot): boolean {
     return this.slots.some(

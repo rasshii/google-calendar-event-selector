@@ -236,3 +236,66 @@
 .gcal-selector-header:active {
   cursor: grabbing;
 }
+
+/* 選択モードボタン */
+.gcal-selection-mode-btn {
+  background: #f1f3f4;
+  color: #5f6368;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.gcal-selection-mode-btn:hover:not(:disabled) {
+  background: #e8eaed;
+  border-color: #c1c1c1;
+}
+
+.gcal-selection-mode-btn.gcal-selection-mode-active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.gcal-selection-mode-btn.gcal-selection-mode-active:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4290 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+/* カレンダーオーバーレイ（選択範囲の視覚表示） */
+.gcal-selection-overlay {
+  position: absolute;
+  background: rgba(102, 126, 234, 0.25);
+  border: 2px solid #667eea;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.gcal-temp-overlay {
+  position: absolute;
+  background: rgba(102, 126, 234, 0.15);
+  border: 2px dashed #667eea;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 99;
+}
+
+/* カレンダー全体のオーバーレイ（選択モードON時） */
+.gcal-calendar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(102, 126, 234, 0.03);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gcal-calendar-overlay.active {
+  opacity: 1;
+}

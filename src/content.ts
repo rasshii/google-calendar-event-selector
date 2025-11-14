@@ -12,8 +12,10 @@ import { detectLocale, setLocale, getMessage } from './utils/locale';
 import { GridAnalyzer } from './core/grid-analyzer';
 import { DragHandler } from './core/drag-handler';
 import { SlotManager } from './core/slot-manager';
+import { SelectionModeManager } from './core/selection-mode-manager';
 import { createUIPanel } from './ui/panel';
 import { showErrorNotification } from './ui/notification';
+import { createCalendarOverlay, toggleCalendarOverlay } from './ui/overlay';
 
 /**
  * アプリケーションクラス
@@ -21,13 +23,16 @@ import { showErrorNotification } from './ui/notification';
 class TimeSlotSelectorApp {
   private gridAnalyzer: GridAnalyzer;
   private slotManager: SlotManager;
+  private selectionModeManager: SelectionModeManager;
   private dragHandler: DragHandler;
   private panel: HTMLElement | null = null;
+  private calendarOverlay: HTMLElement | null = null;
 
   constructor() {
     this.gridAnalyzer = new GridAnalyzer();
     this.slotManager = new SlotManager();
-    this.dragHandler = new DragHandler(this.gridAnalyzer, this.slotManager);
+    this.selectionModeManager = new SelectionModeManager();
+    this.dragHandler = new DragHandler(this.gridAnalyzer, this.slotManager, this.selectionModeManager);
 
     // グローバルアクセス用（パネルから参照）
     (window as any).__slotManager = this.slotManager;
@@ -58,7 +63,17 @@ class TimeSlotSelectorApp {
       }
 
       // UIパネルを作成
-      this.panel = createUIPanel(this.dragHandler.getPanelDragState());
+      this.panel = createUIPanel(this.dragHandler.getPanelDragState(), this.selectionModeManager);
+
+      // カレンダーオーバーレイを作成
+      this.calendarOverlay = createCalendarOverlay();
+
+      // 選択モードの変更を監視してオーバーレイを切り替え
+      this.selectionModeManager.addListener((isActive) => {
+        if (this.calendarOverlay) {
+          toggleCalendarOverlay(this.calendarOverlay, isActive);
+        }
+      });
 
       // ドラッグリスナーをアタッチ
       this.dragHandler.attachListeners();
@@ -105,6 +120,11 @@ class TimeSlotSelectorApp {
     if (this.panel) {
       this.panel.remove();
       this.panel = null;
+    }
+
+    if (this.calendarOverlay) {
+      this.calendarOverlay.remove();
+      this.calendarOverlay = null;
     }
 
     console.log('Google Calendar Time Slot Selector cleaned up');

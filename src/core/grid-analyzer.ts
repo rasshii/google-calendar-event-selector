@@ -54,8 +54,8 @@ export class GridAnalyzer {
     if (this.gridCache.columns.length > 0) {
       const firstColumn = this.gridCache.columns[0].element;
       const height = firstColumn.offsetHeight;
-      // 24時間分の高さと仮定
-      this.gridCache.hourHeight = height / 24;
+      // 1日の時間数で割って1時間あたりの高さを算出
+      this.gridCache.hourHeight = height / CONFIG.HOURS_IN_DAY;
       this.gridCache.gridTop = this.gridCache.columns[0].top + window.scrollY;
     }
 

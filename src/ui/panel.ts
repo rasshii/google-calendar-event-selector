@@ -7,12 +7,16 @@ import { CSS_CLASSES, SELECTORS, CONFIG } from '@/config';
 import { getMessage } from '@/utils/locale';
 import { formatSlot } from '@/utils/formatter';
 import { SlotManager } from '@/core/slot-manager';
+import { SelectionModeManager } from '@/core/selection-mode-manager';
 import { showErrorNotification } from './notification';
 
 /**
  * UIパネルを作成
  */
-export function createUIPanel(panelDragState: { isDragging: boolean; offsetX: number; offsetY: number }): HTMLElement {
+export function createUIPanel(
+  panelDragState: { isDragging: boolean; offsetX: number; offsetY: number },
+  selectionModeManager: SelectionModeManager
+): HTMLElement {
   const panel = document.createElement('div');
   panel.id = SELECTORS.PANEL.substring(1);
 
@@ -24,7 +28,7 @@ export function createUIPanel(panelDragState: { isDragging: boolean; offsetX: nu
 
   document.body.appendChild(panel);
 
-  setupPanelListeners(panel, panelDragState);
+  setupPanelListeners(panel, panelDragState, selectionModeManager);
 
   return panel;
 }
@@ -88,19 +92,35 @@ function createActionButtons(): HTMLElement {
   const actions = document.createElement('div');
   actions.className = CSS_CLASSES.ACTIONS;
 
+  // 選択モードトグルボタン
+  const selectionModeBtn = document.createElement('button');
+  selectionModeBtn.id = SELECTORS.SELECTION_MODE_BTN.substring(1);
+  selectionModeBtn.className = `${CSS_CLASSES.BTN} ${CSS_CLASSES.SELECTION_MODE_BTN}`;
+  selectionModeBtn.textContent = getMessage('selectionModeOff');
+  selectionModeBtn.style.width = '100%';
+  selectionModeBtn.style.marginBottom = '10px';
+  actions.appendChild(selectionModeBtn);
+
+  // ボタングループコンテナ
+  const buttonGroup = document.createElement('div');
+  buttonGroup.style.display = 'flex';
+  buttonGroup.style.gap = '10px';
+
   const copyBtn = document.createElement('button');
   copyBtn.id = SELECTORS.COPY_BTN.substring(1);
   copyBtn.className = `${CSS_CLASSES.BTN} ${CSS_CLASSES.BTN_PRIMARY}`;
   copyBtn.disabled = true;
   copyBtn.textContent = getMessage('copyButton');
-  actions.appendChild(copyBtn);
+  buttonGroup.appendChild(copyBtn);
 
   const clearBtn = document.createElement('button');
   clearBtn.id = SELECTORS.CLEAR_BTN.substring(1);
   clearBtn.className = `${CSS_CLASSES.BTN} ${CSS_CLASSES.BTN_SECONDARY}`;
   clearBtn.disabled = true;
   clearBtn.textContent = getMessage('clearButton');
-  actions.appendChild(clearBtn);
+  buttonGroup.appendChild(clearBtn);
+
+  actions.appendChild(buttonGroup);
 
   return actions;
 }
@@ -110,11 +130,13 @@ function createActionButtons(): HTMLElement {
  */
 function setupPanelListeners(
   panel: HTMLElement,
-  panelDragState: { isDragging: boolean; offsetX: number; offsetY: number }
+  panelDragState: { isDragging: boolean; offsetX: number; offsetY: number },
+  selectionModeManager: SelectionModeManager
 ): void {
   const header = panel.querySelector(SELECTORS.PANEL_HEADER) as HTMLElement;
   const minimizeBtn = panel.querySelector(SELECTORS.MINIMIZE_BTN) as HTMLElement;
   const content = panel.querySelector(SELECTORS.PANEL_CONTENT) as HTMLElement;
+  const selectionModeBtn = panel.querySelector(SELECTORS.SELECTION_MODE_BTN) as HTMLElement;
   const copyBtn = panel.querySelector(SELECTORS.COPY_BTN) as HTMLElement;
   const clearBtn = panel.querySelector(SELECTORS.CLEAR_BTN) as HTMLElement;
 
@@ -128,6 +150,9 @@ function setupPanelListeners(
 
   // ドラッグ機能
   setupPanelDragFunctionality(panel, header, minimizeBtn, panelDragState);
+
+  // 選択モードトグル
+  setupSelectionModeButton(selectionModeBtn, selectionModeManager);
 
   // コピー・クリアボタン（グローバルハンドラーで設定）
   copyBtn.addEventListener('click', copySelectedSlots);
@@ -181,6 +206,28 @@ function setupPanelDragFunctionality(
 }
 
 /**
+ * 選択モードボタンの動作を設定
+ */
+function setupSelectionModeButton(
+  button: HTMLElement,
+  selectionModeManager: SelectionModeManager
+): void {
+  button.addEventListener('click', () => {
+    selectionModeManager.toggle();
+  });
+
+  selectionModeManager.addListener((isActive) => {
+    if (isActive) {
+      button.textContent = getMessage('selectionModeOn');
+      button.classList.add(CSS_CLASSES.SELECTION_MODE_ACTIVE);
+    } else {
+      button.textContent = getMessage('selectionModeOff');
+      button.classList.remove(CSS_CLASSES.SELECTION_MODE_ACTIVE);
+    }
+  });
+}
+
+/**
  * 選択されたスロットリストUIを更新
  */
 export function updateSlotList(slots: TimeSlot[], slotManager: SlotManager): void {
@@ -189,7 +236,11 @@ export function updateSlotList(slots: TimeSlot[], slotManager: SlotManager): voi
   const clearBtn = document.querySelector(SELECTORS.CLEAR_BTN) as HTMLButtonElement;
 
   if (!eventListContainer || !copyBtn || !clearBtn) {
-    console.error('UI要素が見つかりません');
+    console.error('UI要素が見つかりません:', {
+      eventListContainer: !!eventListContainer,
+      copyBtn: !!copyBtn,
+      clearBtn: !!clearBtn
+    });
     return;
   }
 
@@ -270,8 +321,8 @@ function copySelectedSlots(): void {
       copyBtn.textContent = originalText;
       copyBtn.style.backgroundColor = '';
     }, CONFIG.COPY_SUCCESS_DISPLAY_MS);
-  }).catch(err => {
-    console.error('コピーに失敗:', err);
+  }).catch((err: Error) => {
+    console.error('コピーに失敗:', err.message, err.stack);
     showErrorNotification(getMessage('errorCopyFailed'));
   });
 }

@@ -6,6 +6,7 @@ import type { DragState, TimeSlot } from '@/types';
 import { CONFIG } from '@/config';
 import { GridAnalyzer } from './grid-analyzer';
 import { SlotManager } from './slot-manager';
+import { SelectionModeManager } from './selection-mode-manager';
 import { updateTempOverlay, removeTempOverlay, createSelectionOverlay } from '@/ui/overlay';
 
 export class DragHandler {
@@ -27,7 +28,8 @@ export class DragHandler {
 
   constructor(
     private gridAnalyzer: GridAnalyzer,
-    private slotManager: SlotManager
+    private slotManager: SlotManager,
+    private selectionModeManager: SelectionModeManager
   ) {}
 
   /**
@@ -59,6 +61,9 @@ export class DragHandler {
    * マウスダウンハンドラー
    */
   private handleMouseDown = (e: MouseEvent): void => {
+    // 選択モードがOFFの場合は何もしない
+    if (!this.selectionModeManager.isSelectionModeActive()) return;
+
     // パネルドラッグ中は無視
     if (this.panelDragState.isDragging) return;
 

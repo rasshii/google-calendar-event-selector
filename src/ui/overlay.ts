@@ -90,3 +90,24 @@ export function createSelectionOverlay(
   column.element.appendChild(overlay);
   return overlay;
 }
+
+/**
+ * カレンダー全体のオーバーレイを作成（選択モード表示用）
+ */
+export function createCalendarOverlay(): HTMLElement {
+  const overlay = document.createElement('div');
+  overlay.className = CSS_CLASSES.CALENDAR_OVERLAY;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+/**
+ * カレンダーオーバーレイの表示/非表示を切り替え
+ */
+export function toggleCalendarOverlay(overlay: HTMLElement, isActive: boolean): void {
+  if (isActive) {
+    overlay.classList.add('active');
+  } else {
+    overlay.classList.remove('active');
+  }
+}

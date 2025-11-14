@@ -58,6 +58,8 @@ export interface Messages {
   copyButton: string;
   clearButton: string;
   copiedSuccess: string;
+  selectionModeOn: string;
+  selectionModeOff: string;
   errorCopyFailed: string;
   errorInitFailed: string;
   initSuccess: string;
