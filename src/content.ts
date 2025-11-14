@@ -57,6 +57,8 @@ class TimeSlotSelectorApp {
   private dragHandler: DragHandler;
   private panel: HTMLElement | null = null;
   private gridOverlay: HTMLElement | null = null;
+  private panelCleanup: (() => void) | null = null;
+  private calendarObserver: MutationObserver | null = null;
 
   constructor() {
     this.gridAnalyzer = new GridAnalyzer();
@@ -82,46 +84,75 @@ class TimeSlotSelectorApp {
    * 8. 選択モード変更時のオーバーレイ表示/非表示を設定
    */
   async init(): Promise<void> {
+    console.log('🚀 [App] ========== INITIALIZATION START ==========');
+
     // ロケール検出
     const locale = detectLocale();
     setLocale(locale);
-    console.log('Detected locale:', locale);
+    console.log('  🌐 Locale detected:', locale);
 
     // カレンダーの読み込み待機
+    console.log('  ⏳ Waiting for Google Calendar to load...');
     const initialized = await this.waitForCalendar();
 
     if (!initialized) {
+      console.error('  ❌ Calendar not found after timeout');
       console.warn(getMessage('calendarNotFound'));
       return;
     }
+    console.log('  ✅ Google Calendar found and ready');
 
     try {
       // グリッド解析: カレンダーの構造を解析
+      console.log('  📊 Step 1/7: Analyzing calendar grid...');
       const gridAnalyzed = this.gridAnalyzer.analyze();
       if (!gridAnalyzed) {
         throw new Error('Failed to analyze calendar grid');
       }
+      console.log('  ✅ Grid analysis completed');
 
       // UIパネル作成: 右側に表示される操作パネル
-      this.panel = createUIPanel(this.dragHandler.getPanelDragState(), this.selectionModeManager);
+      console.log('  🎨 Step 2/7: Creating UI panel...');
+      [this.panel, this.panelCleanup] = createUIPanel(
+        this.dragHandler.getPanelDragState(),
+        this.selectionModeManager
+      );
+      console.log('  ✅ UI panel created:', {
+        id: this.panel.id,
+        isConnected: this.panel.isConnected
+      });
 
       // グリッドオーバーレイ作成（Approach A）
       // Google Calendarグリッド全体を覆う透明なオーバーレイを作成
+      console.log('  🎨 Step 3/7: Creating grid overlay (Approach A)...');
       this.gridOverlay = createGridOverlay(this.gridAnalyzer);
+
+      if (!this.gridOverlay) {
+        throw new Error('Failed to create grid overlay');
+      }
+      console.log('  ✅ Grid overlay created');
 
       // ドラッグハンドラーにオーバーレイを設定
       // ドラッグイベントはこのオーバーレイ上でのみ処理される
+      console.log('  🎯 Step 4/7: Setting grid overlay for drag handler...');
       this.dragHandler.setGridOverlay(this.gridOverlay);
 
       // イベントリスナーをアタッチ
       // オーバーレイにmousedown/move/upリスナーを登録
+      console.log('  🔗 Step 5/7: Attaching event listeners...');
       this.dragHandler.attachListeners();
 
       // 選択モード変更時のオーバーレイ表示/非表示を設定
       // ON: オーバーレイ表示、Google Calendar無効化
       // OFF: オーバーレイ非表示、Google Calendar有効化
+      console.log('  📢 Step 6/7: Registering selection mode listener...');
       this.selectionModeManager.addListener((isActive) => {
-        if (!this.gridOverlay) return;
+        console.log(`  [App] Selection mode changed: ${isActive ? 'ON' : 'OFF'}`);
+
+        if (!this.gridOverlay) {
+          console.error('  ❌ Grid overlay is null in selection mode listener');
+          return;
+        }
 
         if (isActive) {
           showGridOverlay(this.gridOverlay, this.gridAnalyzer);
@@ -129,12 +160,170 @@ class TimeSlotSelectorApp {
           hideGridOverlay(this.gridOverlay, this.gridAnalyzer);
         }
       });
+      console.log('  ✅ Selection mode listener registered');
 
+      // スクロール・リサイズ時にグリッドを再解析
+      console.log('  🔄 Step 7/7: Setting up scroll/resize handlers...');
+      this.setupScrollResizeHandlers();
+
+      // カレンダーの日付変更を監視
+      console.log('  👁️  Setting up calendar observer...');
+      this.setupCalendarObserver();
+
+      // 初期化時に表示範囲外の選択を除外
+      console.log('  🔄 Performing initial slot filtering...');
+      const initialVisibleDateKeys = this.gridAnalyzer.getVisibleDateKeys();
+      console.log('  📅 Currently visible date keys:', Array.from(initialVisibleDateKeys));
+      console.log('  📝 Current slots before filtering:', this.slotManager.getSlots().length);
+      this.slotManager.filterByVisibleDates(initialVisibleDateKeys);
+
+      console.log('✅ [App] ========== INITIALIZATION SUCCESS ==========');
       console.log(getMessage('initSuccess'));
     } catch (error) {
+      console.error('❌ [App] ========== INITIALIZATION FAILED ==========');
       console.error('Extension initialization failed:', error);
       showErrorNotification(getMessage('errorInitFailed'));
     }
+  }
+
+  /**
+   * カレンダーの日付変更を監視して、表示範囲外の選択を除外
+   */
+  private setupCalendarObserver(): void {
+    const calendarContainer = document.querySelector(SELECTORS.CALENDAR_MAIN);
+    if (!calendarContainer) {
+      console.warn('Calendar container not found for observer');
+      return;
+    }
+
+    let updateTimeout: number | null = null;
+    let previousDateKeys: Set<string> = new Set();
+
+    // 初期状態を保存
+    const initialDateKeys = this.gridAnalyzer.getVisibleDateKeys();
+    previousDateKeys = new Set(initialDateKeys);
+
+    // グリッドの変更を監視（デバウンス付き）
+    this.calendarObserver = new MutationObserver(() => {
+      // 連続した変更をまとめて処理
+      if (updateTimeout !== null) {
+        clearTimeout(updateTimeout);
+      }
+
+      updateTimeout = window.setTimeout(() => {
+        // グリッドを再解析
+        const analyzed = this.gridAnalyzer.analyze();
+        if (!analyzed) {
+          return;
+        }
+
+        // 現在表示されている日付のセットを取得
+        const visibleDateKeys = this.gridAnalyzer.getVisibleDateKeys();
+
+        // 日付が実際に変更されたかチェック
+        const dateKeysChanged =
+          previousDateKeys.size !== visibleDateKeys.size ||
+          ![...previousDateKeys].every(key => visibleDateKeys.has(key));
+
+        if (dateKeysChanged) {
+          console.log('Calendar date changed, updating selections');
+
+          // 表示範囲外の選択を除外
+          this.slotManager.filterByVisibleDates(visibleDateKeys);
+
+          // オーバーレイの位置を更新（選択モードがONの場合）
+          if (this.selectionModeManager.isSelectionModeActive() && this.gridOverlay) {
+            this.updateGridOverlayPosition();
+          }
+
+          // 現在の日付を保存
+          previousDateKeys = new Set(visibleDateKeys);
+        }
+
+        updateTimeout = null;
+      }, 500); // 500msのデバウンス（より長く）
+    });
+
+    // カレンダーコンテナのchildListのみを監視（attributes監視を削除）
+    this.calendarObserver.observe(calendarContainer, {
+      childList: true,
+      subtree: true,
+    });
+
+    console.log('Calendar observer started');
+  }
+
+  /**
+   * スクロール・リサイズハンドラーを設定
+   * グリッドの座標をリアルタイムで更新します
+   */
+  private setupScrollResizeHandlers(): void {
+    let updateTimeout: number | null = null;
+
+    const handleUpdate = () => {
+      // デバウンス処理
+      if (updateTimeout !== null) {
+        clearTimeout(updateTimeout);
+      }
+
+      updateTimeout = window.setTimeout(() => {
+        // 選択モードがONの時のみ更新
+        if (!this.selectionModeManager.isSelectionModeActive()) {
+          updateTimeout = null;
+          return;
+        }
+
+        // グリッドを再解析して最新の座標を取得
+        this.gridAnalyzer.analyze();
+
+        // オーバーレイの位置を更新
+        if (this.gridOverlay) {
+          this.updateGridOverlayPosition();
+        }
+
+        updateTimeout = null;
+      }, 100); // 100msのデバウンス（頻繁な実行を防ぐ）
+    };
+
+    window.addEventListener('scroll', handleUpdate, true);
+    window.addEventListener('resize', handleUpdate);
+
+    console.log('Scroll/resize handlers attached');
+  }
+
+  /**
+   * グリッドオーバーレイの位置を更新
+   */
+  private updateGridOverlayPosition(): void {
+    if (!this.gridOverlay) {
+      return;
+    }
+
+    const columns = this.gridAnalyzer.getColumns();
+    if (columns.length === 0) {
+      return;
+    }
+
+    const first = columns[0];
+    const last = columns[columns.length - 1];
+
+    const newTop = first.top;
+    const newLeft = first.left;
+    const newWidth = last.right - first.left;
+    const newHeight = first.element.offsetHeight;
+
+    this.gridOverlay.style.top = `${newTop}px`;
+    this.gridOverlay.style.left = `${newLeft}px`;
+    this.gridOverlay.style.width = `${newWidth}px`;
+    this.gridOverlay.style.height = `${newHeight}px`;
+
+    console.log('📐 Overlay position updated:', {
+      top: newTop,
+      left: newLeft,
+      width: newWidth,
+      height: newHeight,
+      dateRange: `${first.dateKey} to ${last.dateKey}`
+    });
   }
 
   /**
@@ -168,6 +357,16 @@ class TimeSlotSelectorApp {
   cleanup(): void {
     this.slotManager.clearAll();
     this.dragHandler.detachListeners();
+
+    if (this.calendarObserver) {
+      this.calendarObserver.disconnect();
+      this.calendarObserver = null;
+    }
+
+    if (this.panelCleanup) {
+      this.panelCleanup();
+      this.panelCleanup = null;
+    }
 
     if (this.panel) {
       this.panel.remove();

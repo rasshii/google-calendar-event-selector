@@ -12,6 +12,11 @@ export class SlotManager {
    * スロットを追加
    */
   addSlot(slot: TimeSlot): void {
+    console.log('➕ Adding slot:', {
+      date: slot.date.toISOString().split('T')[0],
+      dateKey: slot.column.dateKey,
+      time: `${slot.startHour}:${String(slot.startMin).padStart(2, '0')}-${slot.endHour}:${String(slot.endMin).padStart(2, '0')}`
+    });
     this.slots.push(slot);
     this.sortSlots();
     updateSlotList(this.slots, this);
@@ -49,6 +54,47 @@ export class SlotManager {
   }
 
   /**
+   * 表示範囲外のスロットを除外
+   *
+   * @param visibleDateKeys - 現在表示されている日付のdatekeyのセット
+   */
+  filterByVisibleDates(visibleDateKeys: Set<string>): void {
+    const initialCount = this.slots.length;
+
+    console.log('🔍 Filtering slots:', {
+      totalSlots: initialCount,
+      visibleDateKeys: Array.from(visibleDateKeys),
+      slotDateKeys: this.slots.map(s => s.column.dateKey)
+    });
+
+    // 表示範囲外のスロットを削除
+    const slotsToRemove = this.slots.filter(slot => {
+      const dateKey = slot.column.dateKey;
+      const shouldRemove = !visibleDateKeys.has(dateKey);
+      if (shouldRemove) {
+        console.log(`  ❌ Removing slot with dateKey: ${dateKey} (not in visible range)`);
+      }
+      return shouldRemove;
+    });
+
+    slotsToRemove.forEach(slot => {
+      if (slot.overlay) {
+        slot.overlay.remove();
+      }
+    });
+
+    this.slots = this.slots.filter(slot => visibleDateKeys.has(slot.column.dateKey));
+
+    // 変更があった場合のみUIを更新
+    if (initialCount !== this.slots.length) {
+      console.log(`✅ Removed ${initialCount - this.slots.length} out-of-view selections`);
+      updateSlotList(this.slots, this);
+    } else {
+      console.log('ℹ️ No slots removed (all are in visible range)');
+    }
+  }
+
+  /**
    * 重複チェック
    * 既存のスロットと同じ日付・時刻範囲のスロットが存在するかをチェック
    *
@@ -56,14 +102,30 @@ export class SlotManager {
    * @returns {boolean} 重複がある場合true、ない場合false
    */
   isDuplicate(newSlot: TimeSlot): boolean {
-    return this.slots.some(
-      s =>
-        s.date.getTime() === newSlot.date.getTime() &&
-        s.startHour === newSlot.startHour &&
-        s.startMin === newSlot.startMin &&
-        s.endHour === newSlot.endHour &&
-        s.endMin === newSlot.endMin
-    );
+    try {
+      if (!newSlot || !newSlot.date) {
+        console.error('Invalid slot for duplicate check');
+        return true; // エラー時は重複扱いにして追加を防ぐ
+      }
+
+      // 日付が有効かチェック
+      if (isNaN(newSlot.date.getTime())) {
+        console.error('Invalid date in slot');
+        return true;
+      }
+
+      return this.slots.some(
+        s =>
+          s.date.getTime() === newSlot.date.getTime() &&
+          s.startHour === newSlot.startHour &&
+          s.startMin === newSlot.startMin &&
+          s.endHour === newSlot.endHour &&
+          s.endMin === newSlot.endMin
+      );
+    } catch (error) {
+      console.error('Error checking for duplicate slot:', error);
+      return true; // エラー時は重複扱いにして追加を防ぐ
+    }
   }
 
   /**

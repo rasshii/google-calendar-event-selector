@@ -22,6 +22,10 @@ export const CONFIG = {
   // ドラッグ設定
   MIN_DRAG_DISTANCE_PX: 5,  // 最小ドラッグ距離（ピクセル）
 
+  // UI スペーシング（ピクセル単位）
+  PANEL_DEFAULT_GAP: 10,
+  PANEL_BUTTON_MARGIN_BOTTOM: 10,
+
   // デフォルト値
   DEFAULT_LOCALE: 'ja' as const,
 } as const;
@@ -61,6 +65,7 @@ export const CSS_CLASSES = {
   SELECTION_OVERLAY: 'gcal-selection-overlay',
   TEMP_OVERLAY: 'gcal-temp-overlay',
   CALENDAR_OVERLAY: 'gcal-calendar-overlay',
+  GRID_OVERLAY: 'gcal-grid-overlay',
 } as const;
 
 /**
@@ -79,7 +84,7 @@ export const COLORS = {
     /** 確定した選択範囲の背景色 */
     SELECTION_BG: 'rgba(102, 126, 234, 0.25)',
     /** カレンダーオーバーレイの背景色（選択モードON時） */
-    CALENDAR_BG: 'rgba(102, 126, 234, 0.03)',
+    CALENDAR_BG: 'rgba(102, 126, 234, 0.08)',
     /** オーバーレイのボーダー色 */
     BORDER: '#667eea',
   },
@@ -104,12 +109,12 @@ export const Z_INDEX = {
   SELECTION_OVERLAY: 999,
   /** ドラッグ中の一時的なオーバーレイ */
   TEMP_OVERLAY: 1000,
-  /** パネルUI */
-  PANEL: 10000,
-  /** 通知 */
-  NOTIFICATION: 10001,
   /** カレンダーオーバーレイ（選択モードON時） - Google Calendarの要素より前面 */
   CALENDAR_OVERLAY_ACTIVE: 100000,
+  /** パネルUI - オーバーレイより前面に配置して常にクリック可能にする */
+  PANEL: 200000,
+  /** 通知 - 最前面 */
+  NOTIFICATION: 200001,
 } as const;
 
 export const MESSAGES: MessagesMap = {

@@ -8,11 +8,12 @@
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
+  z-index: 200000; /* Must be higher than CALENDAR_OVERLAY_ACTIVE (100000) to remain clickable */
   font-family: 'Roboto', 'Arial', sans-serif;
   font-size: 14px;
   overflow: hidden;
   border: 1px solid #e0e0e0;
+  pointer-events: auto; /* Ensure panel is always clickable */
 }
 
 .gcal-selector-header {

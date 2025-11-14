@@ -2,7 +2,7 @@
  * パネルUI管理
  */
 
-import type { TimeSlot } from '@/types';
+import type { TimeSlot, PanelDragState } from '@/types';
 import { CSS_CLASSES, SELECTORS, CONFIG } from '@/config';
 import { getMessage } from '@/utils/locale';
 import { formatSlot } from '@/utils/formatter';
@@ -11,14 +11,24 @@ import { SelectionModeManager } from '@/core/selection-mode-manager';
 import { showErrorNotification } from './notification';
 
 /**
+ * パネルのクリーンアップ関数型
+ */
+export type PanelCleanup = () => void;
+
+/**
  * UIパネルを作成
+ *
+ * @returns パネル要素とクリーンアップ関数のタプル
  */
 export function createUIPanel(
-  panelDragState: { isDragging: boolean; offsetX: number; offsetY: number },
+  panelDragState: PanelDragState,
   selectionModeManager: SelectionModeManager
-): HTMLElement {
+): [HTMLElement, PanelCleanup] {
   const panel = document.createElement('div');
   panel.id = SELECTORS.PANEL.substring(1);
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-labelledby', 'gcal-selector-title');
+  panel.setAttribute('aria-modal', 'false');
 
   const header = createPanelHeader();
   panel.appendChild(header);
@@ -28,9 +38,9 @@ export function createUIPanel(
 
   document.body.appendChild(panel);
 
-  setupPanelListeners(panel, panelDragState, selectionModeManager);
+  const cleanup = setupPanelListeners(panel, panelDragState, selectionModeManager);
 
-  return panel;
+  return [panel, cleanup];
 }
 
 /**
@@ -39,15 +49,19 @@ export function createUIPanel(
 function createPanelHeader(): HTMLElement {
   const header = document.createElement('div');
   header.className = CSS_CLASSES.HEADER;
+  header.setAttribute('role', 'banner');
 
   const title = document.createElement('h3');
   title.textContent = getMessage('panelTitle');
+  title.id = 'gcal-selector-title';
   header.appendChild(title);
 
   const minimizeBtn = document.createElement('button');
   minimizeBtn.id = SELECTORS.MINIMIZE_BTN.substring(1);
   minimizeBtn.className = CSS_CLASSES.BTN_ICON;
   minimizeBtn.textContent = '−';
+  minimizeBtn.setAttribute('aria-label', 'Minimize panel');
+  minimizeBtn.setAttribute('aria-expanded', 'true');
   header.appendChild(minimizeBtn);
 
   return header;
@@ -76,6 +90,9 @@ function createEventListArea(): HTMLElement {
   const eventList = document.createElement('div');
   eventList.id = SELECTORS.EVENT_LIST.substring(1);
   eventList.className = CSS_CLASSES.EVENT_LIST;
+  eventList.setAttribute('role', 'list');
+  eventList.setAttribute('aria-live', 'polite');
+  eventList.setAttribute('aria-label', 'Selected time slots');
 
   const emptyMessage = document.createElement('p');
   emptyMessage.className = CSS_CLASSES.EMPTY_MESSAGE;
@@ -98,19 +115,24 @@ function createActionButtons(): HTMLElement {
   selectionModeBtn.className = `${CSS_CLASSES.BTN} ${CSS_CLASSES.SELECTION_MODE_BTN}`;
   selectionModeBtn.textContent = getMessage('selectionModeOff');
   selectionModeBtn.style.width = '100%';
-  selectionModeBtn.style.marginBottom = '10px';
+  selectionModeBtn.style.marginBottom = `${CONFIG.PANEL_BUTTON_MARGIN_BOTTOM}px`;
+  selectionModeBtn.setAttribute('aria-label', 'Toggle selection mode');
+  selectionModeBtn.setAttribute('aria-pressed', 'false');
   actions.appendChild(selectionModeBtn);
 
   // ボタングループコンテナ
   const buttonGroup = document.createElement('div');
   buttonGroup.style.display = 'flex';
-  buttonGroup.style.gap = '10px';
+  buttonGroup.style.gap = `${CONFIG.PANEL_DEFAULT_GAP}px`;
+  buttonGroup.setAttribute('role', 'group');
+  buttonGroup.setAttribute('aria-label', 'Slot actions');
 
   const copyBtn = document.createElement('button');
   copyBtn.id = SELECTORS.COPY_BTN.substring(1);
   copyBtn.className = `${CSS_CLASSES.BTN} ${CSS_CLASSES.BTN_PRIMARY}`;
   copyBtn.disabled = true;
   copyBtn.textContent = getMessage('copyButton');
+  copyBtn.setAttribute('aria-label', 'Copy selected time slots to clipboard');
   buttonGroup.appendChild(copyBtn);
 
   const clearBtn = document.createElement('button');
@@ -118,6 +140,7 @@ function createActionButtons(): HTMLElement {
   clearBtn.className = `${CSS_CLASSES.BTN} ${CSS_CLASSES.BTN_SECONDARY}`;
   clearBtn.disabled = true;
   clearBtn.textContent = getMessage('clearButton');
+  clearBtn.setAttribute('aria-label', 'Clear all selected time slots');
   buttonGroup.appendChild(clearBtn);
 
   actions.appendChild(buttonGroup);
@@ -127,12 +150,14 @@ function createActionButtons(): HTMLElement {
 
 /**
  * パネルのイベントリスナーを設定
+ *
+ * @returns クリーンアップ関数
  */
 function setupPanelListeners(
   panel: HTMLElement,
-  panelDragState: { isDragging: boolean; offsetX: number; offsetY: number },
+  panelDragState: PanelDragState,
   selectionModeManager: SelectionModeManager
-): void {
+): PanelCleanup {
   const header = panel.querySelector(SELECTORS.PANEL_HEADER) as HTMLElement;
   const minimizeBtn = panel.querySelector(SELECTORS.MINIMIZE_BTN) as HTMLElement;
   const content = panel.querySelector(SELECTORS.PANEL_CONTENT) as HTMLElement;
@@ -141,39 +166,54 @@ function setupPanelListeners(
   const clearBtn = panel.querySelector(SELECTORS.CLEAR_BTN) as HTMLElement;
 
   // 最小化/最大化
-  minimizeBtn.addEventListener('click', (e) => {
+  const handleMinimize = (e: Event): void => {
     e.stopPropagation();
     const isMinimized = content.style.display === 'none';
     content.style.display = isMinimized ? 'block' : 'none';
     minimizeBtn.textContent = isMinimized ? '−' : '+';
-  });
+    minimizeBtn.setAttribute('aria-expanded', isMinimized ? 'true' : 'false');
+    minimizeBtn.setAttribute('aria-label', isMinimized ? 'Minimize panel' : 'Expand panel');
+  };
+  minimizeBtn.addEventListener('click', handleMinimize);
 
   // ドラッグ機能
-  setupPanelDragFunctionality(panel, header, minimizeBtn, panelDragState);
+  const dragCleanup = setupPanelDragFunctionality(panel, header, minimizeBtn, panelDragState);
 
   // 選択モードトグル
-  setupSelectionModeButton(selectionModeBtn, selectionModeManager);
+  const modeCleanup = setupSelectionModeButton(selectionModeBtn, selectionModeManager);
 
-  // コピー・クリアボタン（グローバルハンドラーで設定）
-  copyBtn.addEventListener('click', copySelectedSlots);
-  clearBtn.addEventListener('click', () => {
+  // コピー・クリアボタン
+  const handleClear = (): void => {
     const slotManager = window.__slotManager;
     if (slotManager) {
       slotManager.clearAll();
     }
-  });
+  };
+  copyBtn.addEventListener('click', copySelectedSlots);
+  clearBtn.addEventListener('click', handleClear);
+
+  // クリーンアップ関数を返す
+  return () => {
+    minimizeBtn.removeEventListener('click', handleMinimize);
+    copyBtn.removeEventListener('click', copySelectedSlots);
+    clearBtn.removeEventListener('click', handleClear);
+    dragCleanup();
+    modeCleanup();
+  };
 }
 
 /**
  * パネルのドラッグ機能を設定
+ *
+ * @returns クリーンアップ関数
  */
 function setupPanelDragFunctionality(
   panel: HTMLElement,
   header: HTMLElement,
   excludeElement: HTMLElement,
-  panelDragState: { isDragging: boolean; offsetX: number; offsetY: number }
-): void {
-  header.addEventListener('mousedown', (e: MouseEvent) => {
+  panelDragState: PanelDragState
+): () => void {
+  const handleMouseDown = (e: MouseEvent): void => {
     if (e.target === excludeElement) return;
 
     panelDragState.isDragging = true;
@@ -181,9 +221,9 @@ function setupPanelDragFunctionality(
     panelDragState.offsetX = e.clientX - rect.left;
     panelDragState.offsetY = e.clientY - rect.top;
     header.style.cursor = 'grabbing';
-  });
+  };
 
-  document.addEventListener('mousemove', (e: MouseEvent) => {
+  const handleMouseMove = (e: MouseEvent): void => {
     if (!panelDragState.isDragging) return;
 
     const x = e.clientX - panelDragState.offsetX;
@@ -195,40 +235,66 @@ function setupPanelDragFunctionality(
     panel.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
     panel.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
     panel.style.right = 'auto';
-  });
+  };
 
-  document.addEventListener('mouseup', () => {
+  const handleMouseUp = (): void => {
     if (panelDragState.isDragging) {
       panelDragState.isDragging = false;
       header.style.cursor = 'move';
     }
-  });
+  };
+
+  header.addEventListener('mousedown', handleMouseDown);
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', handleMouseUp);
+
+  // クリーンアップ関数を返す
+  return () => {
+    header.removeEventListener('mousedown', handleMouseDown);
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
 }
 
 /**
  * 選択モードボタンの動作を設定
+ *
+ * @returns クリーンアップ関数
  */
 function setupSelectionModeButton(
   button: HTMLElement,
   selectionModeManager: SelectionModeManager
-): void {
-  button.addEventListener('click', () => {
+): () => void {
+  const handleClick = (): void => {
     selectionModeManager.toggle();
-  });
+  };
 
-  selectionModeManager.addListener((isActive) => {
+  const handleModeChange = (isActive: boolean): void => {
     if (isActive) {
       button.textContent = getMessage('selectionModeOn');
       button.classList.add(CSS_CLASSES.SELECTION_MODE_ACTIVE);
+      button.setAttribute('aria-pressed', 'true');
     } else {
       button.textContent = getMessage('selectionModeOff');
       button.classList.remove(CSS_CLASSES.SELECTION_MODE_ACTIVE);
+      button.setAttribute('aria-pressed', 'false');
     }
-  });
+  };
+
+  button.addEventListener('click', handleClick);
+  selectionModeManager.addListener(handleModeChange);
+
+  // クリーンアップ関数を返す
+  return () => {
+    button.removeEventListener('click', handleClick);
+    selectionModeManager.removeListener(handleModeChange);
+  };
 }
 
 /**
  * 選択されたスロットリストUIを更新
+ *
+ * DOM要素の差分更新を行うことで、不要な再描画を削減します。
  */
 export function updateSlotList(slots: TimeSlot[], slotManager: SlotManager): void {
   const eventListContainer = document.querySelector(SELECTORS.EVENT_LIST);
@@ -244,28 +310,73 @@ export function updateSlotList(slots: TimeSlot[], slotManager: SlotManager): voi
     return;
   }
 
-  // 既存の内容をクリア
-  while (eventListContainer.firstChild) {
-    eventListContainer.removeChild(eventListContainer.firstChild);
+  // ボタンの状態更新
+  const hasSlots = slots.length > 0;
+  copyBtn.disabled = !hasSlots;
+  clearBtn.disabled = !hasSlots;
+
+  // スロットがない場合
+  if (!hasSlots) {
+    const existingMessage = eventListContainer.querySelector(`.${CSS_CLASSES.EMPTY_MESSAGE}`);
+    if (!existingMessage) {
+      // 既存の内容をクリア
+      while (eventListContainer.firstChild) {
+        eventListContainer.removeChild(eventListContainer.firstChild);
+      }
+
+      const emptyMessage = document.createElement('p');
+      emptyMessage.className = CSS_CLASSES.EMPTY_MESSAGE;
+      emptyMessage.textContent = getMessage('emptyMessage');
+      eventListContainer.appendChild(emptyMessage);
+    }
+    return;
   }
 
-  if (slots.length === 0) {
-    const emptyMessage = document.createElement('p');
-    emptyMessage.className = CSS_CLASSES.EMPTY_MESSAGE;
-    emptyMessage.textContent = getMessage('emptyMessage');
-    eventListContainer.appendChild(emptyMessage);
+  // 空メッセージが存在する場合は削除
+  const existingMessage = eventListContainer.querySelector(`.${CSS_CLASSES.EMPTY_MESSAGE}`);
+  if (existingMessage) {
+    existingMessage.remove();
+  }
 
-    copyBtn.disabled = true;
-    clearBtn.disabled = true;
-  } else {
+  // 既存のスロットアイテムを取得
+  const existingItems = Array.from(
+    eventListContainer.querySelectorAll<HTMLElement>(`.${CSS_CLASSES.EVENT_ITEM}`)
+  );
+
+  // スロット数が変わった場合は全再構築
+  if (existingItems.length !== slots.length) {
+    while (eventListContainer.firstChild) {
+      eventListContainer.removeChild(eventListContainer.firstChild);
+    }
+
     slots.forEach((slot, index) => {
       const slotItem = createSlotItem(slot, index + 1, slotManager);
       eventListContainer.appendChild(slotItem);
     });
-
-    copyBtn.disabled = false;
-    clearBtn.disabled = false;
+    return;
   }
+
+  // 各スロットアイテムのテキストを更新（番号とテキストが一致するかチェック）
+  slots.forEach((slot, index) => {
+    const existingItem = existingItems[index];
+    const textSpan = existingItem?.querySelector(`.${CSS_CLASSES.EVENT_TEXT}`);
+
+    if (textSpan) {
+      const expectedText = formatSlot(slot);
+      if (textSpan.textContent !== expectedText) {
+        textSpan.textContent = expectedText;
+      }
+
+      // 番号の更新
+      const numberSpan = existingItem.querySelector(`.${CSS_CLASSES.EVENT_NUMBER}`);
+      if (numberSpan) {
+        const expectedNumber = `${index + 1}.`;
+        if (numberSpan.textContent !== expectedNumber) {
+          numberSpan.textContent = expectedNumber;
+        }
+      }
+    }
+  });
 }
 
 /**
@@ -274,10 +385,12 @@ export function updateSlotList(slots: TimeSlot[], slotManager: SlotManager): voi
 function createSlotItem(slot: TimeSlot, index: number, slotManager: SlotManager): HTMLElement {
   const slotItem = document.createElement('div');
   slotItem.className = CSS_CLASSES.EVENT_ITEM;
+  slotItem.setAttribute('role', 'listitem');
 
   const numberSpan = document.createElement('span');
   numberSpan.className = CSS_CLASSES.EVENT_NUMBER;
   numberSpan.textContent = `${index}.`;
+  numberSpan.setAttribute('aria-label', `Slot ${index}`);
   slotItem.appendChild(numberSpan);
 
   const textSpan = document.createElement('span');
@@ -288,6 +401,7 @@ function createSlotItem(slot: TimeSlot, index: number, slotManager: SlotManager)
   const removeBtn = document.createElement('button');
   removeBtn.className = CSS_CLASSES.REMOVE_BTN;
   removeBtn.textContent = '×';
+  removeBtn.setAttribute('aria-label', `Remove time slot ${formatSlot(slot)}`);
   removeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     slotManager.removeSlot(slot);
