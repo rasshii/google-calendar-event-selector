@@ -6,9 +6,7 @@ import type { DragState, TimeSlot } from '@/types';
 import { CONFIG } from '@/config';
 import { GridAnalyzer } from './grid-analyzer';
 import { SlotManager } from './slot-manager';
-import { SelectionModeManager } from './selection-mode-manager';
 import { updateTempOverlay, removeTempOverlay, createSelectionOverlay } from '@/ui/overlay';
-import { isEventTargetInPanel, isCalendarEvent } from '@/utils/dom';
 
 export class DragHandler {
   private dragState: DragState = {
@@ -27,29 +25,53 @@ export class DragHandler {
     offsetY: 0,
   };
 
+  private gridOverlay: HTMLElement | null = null;
+
   constructor(
     private gridAnalyzer: GridAnalyzer,
-    private slotManager: SlotManager,
-    private selectionModeManager: SelectionModeManager
+    private slotManager: SlotManager
   ) {}
 
   /**
+   * グリッドオーバーレイを設定
+   *
+   * Approach Aの実装において、グリッドオーバーレイにイベントリスナーを
+   * アタッチするために使用します。これにより、選択モードON時のみ
+   * オーバーレイがイベントをキャプチャします。
+   *
+   * @param overlay - グリッドオーバーレイ要素
+   */
+  setGridOverlay(overlay: HTMLElement): void {
+    this.gridOverlay = overlay;
+  }
+
+  /**
    * ドラッグリスナーをアタッチ
-   * キャプチャフェーズで登録してGoogle Calendarのハンドラーより先に実行
+   *
+   * Approach A実装: グリッドオーバーレイにリスナーをアタッチします。
+   * オーバーレイは選択モードON時のみpointer-events: autoになるため、
+   * 選択モードOFF時はイベントが発火しません。
    */
   attachListeners(): void {
-    document.addEventListener('mousedown', this.handleMouseDown, { capture: true });
-    document.addEventListener('mousemove', this.handleMouseMove, { capture: true });
-    document.addEventListener('mouseup', this.handleMouseUp, { capture: true });
+    if (!this.gridOverlay) {
+      console.warn('Grid overlay not set. Call setGridOverlay() first.');
+      return;
+    }
+
+    this.gridOverlay.addEventListener('mousedown', this.handleMouseDown);
+    this.gridOverlay.addEventListener('mousemove', this.handleMouseMove);
+    this.gridOverlay.addEventListener('mouseup', this.handleMouseUp);
   }
 
   /**
    * ドラッグリスナーをデタッチ
    */
   detachListeners(): void {
-    document.removeEventListener('mousedown', this.handleMouseDown, { capture: true });
-    document.removeEventListener('mousemove', this.handleMouseMove, { capture: true });
-    document.removeEventListener('mouseup', this.handleMouseUp, { capture: true });
+    if (this.gridOverlay) {
+      this.gridOverlay.removeEventListener('mousedown', this.handleMouseDown);
+      this.gridOverlay.removeEventListener('mousemove', this.handleMouseMove);
+      this.gridOverlay.removeEventListener('mouseup', this.handleMouseUp);
+    }
   }
 
   /**
@@ -60,41 +82,17 @@ export class DragHandler {
   }
 
   /**
-   * マウスダウンハンドラー
+   * グリッドオーバーレイ上のマウスダウンハンドラー（Approach A）
    *
-   * 選択モードがONの場合、グリッド内でのドラッグ選択を開始します。
-   * 座標ベースの判定により、ドラッグ中にマウスが様々な要素を通過しても
-   * 選択操作を継続できます。
+   * グリッドオーバーレイにアタッチされているため、このハンドラーは
+   * 選択モードON時のみ発火します。複雑なイベント判定は不要です。
    *
-   * 以下の場合は何もせず、通常のGoogle Calendar操作を許可します：
-   * - 選択モードがOFF
-   * - パネル内のクリック
-   * - 既存のカレンダーイベントのクリック
-   * - グリッド列外のクリック
+   * 座標ベースでグリッド列を判定し、ドラッグ選択を開始します。
    */
   private handleMouseDown = (e: MouseEvent): void => {
-    // 選択モードがOFFの場合は何もしない
-    if (!this.selectionModeManager.isSelectionModeActive()) return;
-
-    // パネル内のクリックは無視（ボタン操作を許可）
-    if (isEventTargetInPanel(e.target)) return;
-
-    // パネルドラッグ中は無視
-    if (this.panelDragState.isDragging) return;
-
-    // 既存のカレンダーイベントへの操作は許可
-    // これにより、選択モードON時でも既存イベントをクリック可能
-    if (isCalendarEvent(e.target)) return;
-
     // グリッド列位置を取得（座標ベースの判定）
-    // 要素ではなく座標で判定することで、ドラッグ中の安定性を確保
     const column = this.gridAnalyzer.getColumnFromX(e.clientX);
     if (!column) return;
-
-    // グリッド内の有効な位置でのイベントをブロック
-    // Google Calendarの新規イベント作成ダイアログを防ぐ
-    e.stopImmediatePropagation();
-    e.preventDefault();
 
     // ドラッグ開始
     this.dragState.isDragging = true;
@@ -103,6 +101,8 @@ export class DragHandler {
     this.dragState.currentX = e.clientX;
     this.dragState.currentY = e.clientY;
     this.dragState.dateColumn = column;
+
+    e.preventDefault();
   };
 
   /**

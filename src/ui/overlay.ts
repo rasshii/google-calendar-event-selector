@@ -92,13 +92,79 @@ export function createSelectionOverlay(
 }
 
 /**
- * NOTE: Full-screen calendar overlay has been removed to allow normal calendar interactions.
- * Event blocking is now handled by DragHandler's intelligent filtering which only blocks
- * clicks on empty grid spaces, while allowing:
- * - Scrolling
- * - Clicking existing events
- * - Calendar navigation
- * - Other Google Calendar UI interactions
+ * グリッド全体を覆うインタラクティブオーバーレイを作成（アプローチA）
  *
- * This approach provides better UX while still preventing unwanted event creation.
+ * このオーバーレイは選択モードON時にグリッド領域全体を物理的にカバーし、
+ * 全てのマウスイベントをキャプチャします。これによりGoogle Calendarと
+ * Extensionのイベント競合を完全に回避します。
+ *
+ * @param gridAnalyzer - グリッド解析インスタンス
+ * @returns 作成されたオーバーレイ要素
  */
+export function createGridOverlay(gridAnalyzer: GridAnalyzer): HTMLElement {
+  const overlay = document.createElement('div');
+  overlay.className = 'gcal-grid-overlay';
+  overlay.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    pointer-events: none;
+    z-index: ${Z_INDEX.TEMP_OVERLAY};
+    display: none;
+  `;
+
+  // グリッドコンテナを見つけて配置
+  const columns = gridAnalyzer.getColumns();
+  if (columns.length > 0) {
+    const firstColumn = columns[0].element;
+    const parent = firstColumn.parentElement;
+    if (parent) {
+      parent.style.position = 'relative'; // 親を相対位置に
+      parent.appendChild(overlay);
+    }
+  }
+
+  return overlay;
+}
+
+/**
+ * グリッドオーバーレイを表示（選択モードON）
+ *
+ * オーバーレイを表示し、pointer-eventsを有効化してイベントをキャプチャします。
+ * 同時にGoogle Calendarのグリッド要素をpointer-events: noneにして無効化します。
+ *
+ * @param overlay - グリッドオーバーレイ要素
+ * @param gridAnalyzer - グリッド解析インスタンス
+ */
+export function showGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer): void {
+  overlay.style.display = 'block';
+  overlay.style.pointerEvents = 'auto';
+
+  // Google Calendarのグリッド要素を無効化
+  const columns = gridAnalyzer.getColumns();
+  columns.forEach(column => {
+    column.element.style.pointerEvents = 'none';
+  });
+}
+
+/**
+ * グリッドオーバーレイを非表示（選択モードOFF）
+ *
+ * オーバーレイを非表示にし、Google Calendarのグリッド要素を再度有効化します。
+ *
+ * @param overlay - グリッドオーバーレイ要素
+ * @param gridAnalyzer - グリッド解析インスタンス
+ */
+export function hideGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer): void {
+  overlay.style.display = 'none';
+  overlay.style.pointerEvents = 'none';
+
+  // Google Calendarのグリッド要素を再度有効化
+  const columns = gridAnalyzer.getColumns();
+  columns.forEach(column => {
+    column.element.style.pointerEvents = '';
+  });
+}
