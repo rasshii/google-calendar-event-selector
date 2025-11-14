@@ -93,10 +93,28 @@ export function createSelectionOverlay(
 
 /**
  * カレンダー全体のオーバーレイを作成（選択モード表示用）
+ * 選択モードON時にGoogle Calendarのデフォルト動作を完全にブロックする
  */
 export function createCalendarOverlay(): HTMLElement {
   const overlay = document.createElement('div');
   overlay.className = CSS_CLASSES.CALENDAR_OVERLAY;
+
+  // イベントをインターセプトする関数
+  // オーバーレイがactiveクラスを持つ場合、全てのイベントを停止
+  const interceptEvent = (e: Event) => {
+    if (overlay.classList.contains('active')) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  };
+
+  // 複数のイベントタイプをインターセプト（キャプチャフェーズで最優先実行）
+  overlay.addEventListener('mousedown', interceptEvent, { capture: true });
+  overlay.addEventListener('click', interceptEvent, { capture: true });
+  overlay.addEventListener('pointerdown', interceptEvent, { capture: true });
+  overlay.addEventListener('touchstart', interceptEvent, { capture: true });
+
   document.body.appendChild(overlay);
   return overlay;
 }

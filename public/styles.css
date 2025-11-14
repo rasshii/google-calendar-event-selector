@@ -299,4 +299,5 @@
 .gcal-calendar-overlay.active {
   opacity: 1;
   pointer-events: auto;
+  z-index: 100000; /* Google Calendarのイベントより上に配置してイベントをインターセプト */
 }

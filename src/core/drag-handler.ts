@@ -34,20 +34,21 @@ export class DragHandler {
 
   /**
    * ドラッグリスナーをアタッチ
+   * キャプチャフェーズで登録してGoogle Calendarのハンドラーより先に実行
    */
   attachListeners(): void {
-    document.addEventListener('mousedown', this.handleMouseDown);
-    document.addEventListener('mousemove', this.handleMouseMove);
-    document.addEventListener('mouseup', this.handleMouseUp);
+    document.addEventListener('mousedown', this.handleMouseDown, { capture: true });
+    document.addEventListener('mousemove', this.handleMouseMove, { capture: true });
+    document.addEventListener('mouseup', this.handleMouseUp, { capture: true });
   }
 
   /**
    * ドラッグリスナーをデタッチ
    */
   detachListeners(): void {
-    document.removeEventListener('mousedown', this.handleMouseDown);
-    document.removeEventListener('mousemove', this.handleMouseMove);
-    document.removeEventListener('mouseup', this.handleMouseUp);
+    document.removeEventListener('mousedown', this.handleMouseDown, { capture: true });
+    document.removeEventListener('mousemove', this.handleMouseMove, { capture: true });
+    document.removeEventListener('mouseup', this.handleMouseUp, { capture: true });
   }
 
   /**
@@ -70,6 +71,10 @@ export class DragHandler {
     const column = this.gridAnalyzer.getColumnFromX(e.clientX);
     if (!column) return;
 
+    // Google Calendarのイベントハンドラーを完全にブロック
+    e.stopImmediatePropagation();
+    e.preventDefault();
+
     // ドラッグ開始
     this.dragState.isDragging = true;
     this.dragState.startX = e.clientX;
@@ -77,8 +82,6 @@ export class DragHandler {
     this.dragState.currentX = e.clientX;
     this.dragState.currentY = e.clientY;
     this.dragState.dateColumn = column;
-
-    e.preventDefault();
   };
 
   /**
