@@ -1,5 +1,21 @@
-/* Google Calendar Event Selector Styles */
+/**
+ * Google Calendar Event Selector スタイルシート
+ *
+ * この拡張機能のUIスタイルを定義します。
+ * Google Calendarのスタイルと競合しないよう、すべてのクラス名に
+ * 'gcal-' プレフィックスを付けています。
+ */
 
+/* ===================================
+   メインパネル
+   =================================== */
+
+/**
+ * 右側に表示される操作パネル
+ * - 固定位置（右上）に配置
+ * - 最前面に表示（z-index: 200000）
+ * - 選択モードON/OFF時も常にクリック可能
+ */
 #gcal-event-selector-panel {
   position: fixed;
   top: 80px;
@@ -8,14 +24,23 @@
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 200000; /* Must be higher than CALENDAR_OVERLAY_ACTIVE (100000) to remain clickable */
+  z-index: 200000; /* CALENDAR_OVERLAY_ACTIVE（100000）より高い値で常にクリック可能 */
   font-family: 'Roboto', 'Arial', sans-serif;
   font-size: 14px;
   overflow: hidden;
   border: 1px solid #e0e0e0;
-  pointer-events: auto; /* Ensure panel is always clickable */
+  pointer-events: auto; /* パネルを常にクリック可能にする */
 }
 
+/* ===================================
+   パネルヘッダー
+   =================================== */
+
+/**
+ * パネルの上部ヘッダー
+ * - グラデーション背景（紫系）
+ * - ドラッグ可能（cursor: move）
+ */
 .gcal-selector-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -26,6 +51,9 @@
   cursor: move;
 }
 
+/**
+ * ヘッダー内のタイトル
+ */
 .gcal-selector-header h3 {
   margin: 0;
   font-size: 16px;
@@ -35,6 +63,9 @@
   gap: 8px;
 }
 
+/**
+ * アイコンボタン（最小化ボタンなど）
+ */
 .gcal-btn-icon {
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -54,12 +85,22 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* ===================================
+   パネルコンテンツ
+   =================================== */
+
+/**
+ * パネルのメインコンテンツエリア
+ */
 .gcal-selector-content {
   padding: 16px;
   max-height: 500px;
   overflow-y: auto;
 }
 
+/**
+ * 選択された時間枠のリスト表示エリア
+ */
 .gcal-event-list {
   min-height: 120px;
   max-height: 350px;
@@ -71,6 +112,9 @@
   border: 1px solid #e8e8e8;
 }
 
+/**
+ * 選択がない場合の空メッセージ
+ */
 .gcal-empty-message {
   color: #9e9e9e;
   text-align: center;
@@ -80,6 +124,14 @@
   line-height: 1.6;
 }
 
+/* ===================================
+   イベントアイテム
+   =================================== */
+
+/**
+ * 個別の時間枠アイテム
+ * - ホバー時にハイライト
+ */
 .gcal-event-item {
   background: white;
   padding: 12px;
@@ -102,6 +154,9 @@
   margin-bottom: 0;
 }
 
+/**
+ * イベント番号（1, 2, 3...）
+ */
 .gcal-event-number {
   font-weight: 700;
   color: #667eea;
@@ -109,6 +164,9 @@
   min-width: 20px;
 }
 
+/**
+ * イベントのテキスト（日時情報）
+ */
 .gcal-event-text {
   flex: 1;
   color: #333;
@@ -116,6 +174,11 @@
   line-height: 1.4;
 }
 
+/**
+ * 削除ボタン（×）
+ * - 赤い円形ボタン
+ * - ホバー時に拡大
+ */
 .gcal-remove-btn {
   background: #f44336;
   color: white;
@@ -137,11 +200,21 @@
   transform: scale(1.1);
 }
 
+/* ===================================
+   アクションボタン
+   =================================== */
+
+/**
+ * アクションボタングループ（コピー、クリア）
+ */
 .gcal-selector-actions {
   display: flex;
   gap: 10px;
 }
 
+/**
+ * 基本ボタンスタイル
+ */
 .gcal-btn {
   flex: 1;
   padding: 12px 16px;
@@ -157,6 +230,10 @@
   gap: 6px;
 }
 
+/**
+ * プライマリボタン（コピーボタン）
+ * - 青色背景
+ */
 .gcal-btn-primary {
   background: #4285F4;
   color: white;
@@ -168,6 +245,10 @@
   box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
 }
 
+/**
+ * セカンダリボタン（クリアボタン）
+ * - グレー背景
+ */
 .gcal-btn-secondary {
   background: #f1f3f4;
   color: #5f6368;
@@ -177,19 +258,30 @@
   background: #e8eaed;
 }
 
+/**
+ * 無効状態のボタン
+ */
 .gcal-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* カレンダー上の選択されたイベントのスタイル */
+/* ===================================
+   その他のスタイル
+   =================================== */
+
+/**
+ * カレンダー上の選択されたイベントのハイライト
+ */
 .gcal-selected-event {
   outline: 3px solid #667eea !important;
   outline-offset: -3px;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
 }
 
-/* スクロールバーのスタイル */
+/**
+ * スクロールバーのカスタムスタイル（イベントリスト用）
+ */
 .gcal-event-list::-webkit-scrollbar {
   width: 8px;
 }
@@ -208,7 +300,10 @@
   background: #a8a8a8;
 }
 
-/* アニメーション */
+/**
+ * アニメーション定義
+ * パネル表示時のスライドインアニメーション
+ */
 @keyframes slideIn {
   from {
     transform: translateX(100%);
@@ -224,7 +319,10 @@
   animation: slideIn 0.3s ease-out;
 }
 
-/* レスポンシブ対応 */
+/**
+ * レスポンシブ対応
+ * モバイルデバイスではパネル幅を調整
+ */
 @media (max-width: 768px) {
   #gcal-event-selector-panel {
     width: calc(100% - 40px);
@@ -233,12 +331,22 @@
   }
 }
 
-/* ドラッグ可能な見た目 */
+/**
+ * ドラッグ中の見た目
+ */
 .gcal-selector-header:active {
   cursor: grabbing;
 }
 
-/* 選択モードボタン */
+/* ===================================
+   選択モードボタン
+   =================================== */
+
+/**
+ * 選択モード切り替えボタン
+ * - OFF時: グレー背景
+ * - ON時: グラデーション背景
+ */
 .gcal-selection-mode-btn {
   background: #f1f3f4;
   color: #5f6368;
@@ -251,6 +359,9 @@
   border-color: #c1c1c1;
 }
 
+/**
+ * 選択モードがアクティブな状態
+ */
 .gcal-selection-mode-btn.gcal-selection-mode-active {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -264,7 +375,15 @@
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
-/* カレンダーオーバーレイ（選択範囲の視覚表示） */
+/* ===================================
+   カレンダーオーバーレイ
+   =================================== */
+
+/**
+ * 確定した選択範囲のオーバーレイ
+ * - 半透明の紫色背景
+ * - 実線ボーダー
+ */
 .gcal-selection-overlay {
   position: absolute;
   background: rgba(102, 126, 234, 0.25);
@@ -274,6 +393,11 @@
   z-index: 100;
 }
 
+/**
+ * ドラッグ中の一時的なオーバーレイ
+ * - より薄い背景
+ * - 破線ボーダー
+ */
 .gcal-temp-overlay {
   position: absolute;
   background: rgba(102, 126, 234, 0.15);
@@ -283,8 +407,14 @@
   z-index: 99;
 }
 
-/* Full-screen calendar overlay removed - see overlay.ts for explanation
- * Event blocking now handled by intelligent filtering in DragHandler
- * This allows normal calendar interactions (scroll, click events, navigation)
- * while blocking only new event creation on empty grid spaces
+/**
+ * 注意：フルスクリーンカレンダーオーバーレイは削除されました
+ *
+ * Approach A実装では、グリッドオーバーレイ方式を採用しているため、
+ * 全画面オーバーレイは不要です。詳細はoverlay.tsを参照してください。
+ *
+ * これにより以下が可能になりました：
+ * - 通常のカレンダー操作（スクロール、クリック、ナビゲーション）
+ * - 選択モードON時のみドラッグイベントをキャプチャ
+ * - より直感的なユーザーエクスペリエンス
  */

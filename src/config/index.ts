@@ -63,41 +63,95 @@ export const CONFIG = {
   DEFAULT_LOCALE: 'ja' as const,
 } as const;
 
+/**
+ * CSSセレクター定数
+ *
+ * Google Calendarの要素と拡張機能のUI要素を特定するためのCSSセレクターを定義します。
+ */
 export const SELECTORS = {
+  // Google Calendar要素のセレクター
+  /** カレンダーのメインコンテナ要素 */
   CALENDAR_MAIN: '[role="main"]',
+  /** 週表示のビューコンテナ */
   WEEK_VIEW_CONTAINER: '[data-view-heading]',
+  /** タイムグリッド（日付列）要素 - data-datekey属性を持つ要素 */
   TIME_GRID: '[data-datekey]',
 
+  // 拡張機能UI要素のセレクター
+  /** メインパネル要素 */
   PANEL: '#gcal-event-selector-panel',
+  /** パネルヘッダー要素 */
   PANEL_HEADER: '.gcal-selector-header',
+  /** パネルコンテンツ領域 */
   PANEL_CONTENT: '.gcal-selector-content',
+  /** 選択イベントのリスト要素 */
   EVENT_LIST: '#gcal-selected-events',
+  /** 最小化ボタン */
   MINIMIZE_BTN: '#gcal-selector-minimize',
+  /** 選択モード切り替えボタン */
   SELECTION_MODE_BTN: '#gcal-selection-mode-btn',
+  /** コピーボタン */
   COPY_BTN: '#gcal-copy-btn',
+  /** クリアボタン */
   CLEAR_BTN: '#gcal-clear-btn',
 } as const;
 
+/**
+ * CSSクラス名定数
+ *
+ * 拡張機能が使用するすべてのCSSクラス名を定義します。
+ * すべてのクラス名には 'gcal-' プレフィックスを付けて、
+ * Google Calendarのクラス名と衝突しないようにしています。
+ */
 export const CSS_CLASSES = {
+  // パネル関連
+  /** メインパネルのクラス */
   PANEL: 'gcal-event-selector-panel',
+  /** パネルヘッダーのクラス */
   HEADER: 'gcal-selector-header',
+  /** パネルコンテンツのクラス */
   CONTENT: 'gcal-selector-content',
+
+  // イベントリスト関連
+  /** イベントリストのクラス */
   EVENT_LIST: 'gcal-event-list',
+  /** 個別イベントアイテムのクラス */
   EVENT_ITEM: 'gcal-event-item',
+  /** イベント番号のクラス */
   EVENT_NUMBER: 'gcal-event-number',
+  /** イベントテキストのクラス */
   EVENT_TEXT: 'gcal-event-text',
+  /** 空メッセージのクラス */
   EMPTY_MESSAGE: 'gcal-empty-message',
+  /** 削除ボタンのクラス */
   REMOVE_BTN: 'gcal-remove-btn',
+
+  // ボタン関連
+  /** ボタンアイコンのクラス */
   BTN_ICON: 'gcal-btn-icon',
+  /** 基本ボタンのクラス */
   BTN: 'gcal-btn',
+  /** プライマリボタンのクラス */
   BTN_PRIMARY: 'gcal-btn-primary',
+  /** セカンダリボタンのクラス */
   BTN_SECONDARY: 'gcal-btn-secondary',
+  /** アクションボタングループのクラス */
   ACTIONS: 'gcal-selector-actions',
+
+  // 選択モード関連
+  /** 選択モードボタンのクラス */
   SELECTION_MODE_BTN: 'gcal-selection-mode-btn',
+  /** 選択モードアクティブ状態のクラス */
   SELECTION_MODE_ACTIVE: 'gcal-selection-mode-active',
+
+  // オーバーレイ関連
+  /** 確定した選択範囲のオーバーレイクラス */
   SELECTION_OVERLAY: 'gcal-selection-overlay',
+  /** ドラッグ中の一時的なオーバーレイクラス */
   TEMP_OVERLAY: 'gcal-temp-overlay',
+  /** カレンダー全体のオーバーレイクラス（選択モードON時） */
   CALENDAR_OVERLAY: 'gcal-calendar-overlay',
+  /** グリッドオーバーレイクラス（Approach A実装） */
   GRID_OVERLAY: 'gcal-grid-overlay',
 } as const;
 
@@ -150,7 +204,14 @@ export const Z_INDEX = {
   NOTIFICATION: 200001,
 } as const;
 
+/**
+ * 多言語メッセージ定数
+ *
+ * UIに表示されるすべてのメッセージを言語ごとに定義します。
+ * 現在は日本語（ja）と英語（en）に対応しています。
+ */
 export const MESSAGES: MessagesMap = {
+  /** 日本語メッセージ */
   ja: {
     panelTitle: '📅 時間選択',
     emptyMessage: '選択モードをONにして、カレンダー上をドラッグしてください',
@@ -164,6 +225,7 @@ export const MESSAGES: MessagesMap = {
     initSuccess: 'Google Calendar Time Slot Selector が初期化されました\n選択モードをONにしてドラッグで時間を選択できます',
     calendarNotFound: 'Google Calendar Time Slot Selector: カレンダーが見つかりませんでした',
   },
+  /** 英語メッセージ */
   en: {
     panelTitle: '📅 Time Selector',
     emptyMessage: 'Turn ON selection mode and drag on the calendar',
@@ -179,11 +241,26 @@ export const MESSAGES: MessagesMap = {
   },
 };
 
+/**
+ * 曜日名マップ
+ *
+ * 曜日名を言語ごとに定義します。
+ * 配列のインデックスは Date.getDay() の戻り値（0=日曜日、6=土曜日）に対応しています。
+ */
 export const WEEKDAYS_MAP: Record<'ja' | 'en', string[]> = {
+  /** 日本語の曜日名（日、月、火、水、木、金、土） */
   ja: ['日', '月', '火', '水', '木', '金', '土'],
+  /** 英語の曜日名（Sun, Mon, Tue, Wed, Thu, Fri, Sat） */
   en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 };
 
+/**
+ * 月名定数
+ *
+ * 月の名前を定義します。
+ * 配列のインデックスは月番号-1に対応（0=January、11=December）
+ */
 export const MONTH_NAMES = {
+  /** 短縮形の月名（Jan, Feb, Mar, ...） */
   short: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
 } as const;
