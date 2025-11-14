@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Generate Icons</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin: 10px;
+    }
+    .icon-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Google Calendar Event Selector - Icon Generator</h1>
+  <p>下のボタンを右クリックして、各アイコンを保存してください。</p>
+
+  <div class="icon-container">
+    <div>
+      <h3>16x16 Icon</h3>
+      <canvas id="icon16" width="16" height="16"></canvas>
+      <br>
+      <button onclick="downloadIcon('icon16', 'icon16.png')">Download 16x16</button>
+    </div>
+    <div>
+      <h3>48x48 Icon</h3>
+      <canvas id="icon48" width="48" height="48"></canvas>
+      <br>
+      <button onclick="downloadIcon('icon48', 'icon48.png')">Download 48x48</button>
+    </div>
+    <div>
+      <h3>128x128 Icon</h3>
+      <canvas id="icon128" width="128" height="128"></canvas>
+      <br>
+      <button onclick="downloadIcon('icon128', 'icon128.png')">Download 128x128</button>
+    </div>
+  </div>
+
+  <script>
+    function drawIcon(canvas) {
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, size, size);
+
+      // Create gradient background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+
+      // Draw circle background
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2 - 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw calendar icon
+      const calWidth = size * 0.5;
+      const calHeight = size * 0.45;
+      const calX = (size - calWidth) / 2;
+      const calY = (size - calHeight) / 2 + size * 0.05;
+
+      // Calendar background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(calX, calY, calWidth, calHeight);
+
+      // Calendar header
+      ctx.fillStyle = '#f8f9fa';
+      ctx.fillRect(calX, calY, calWidth, calHeight * 0.25);
+
+      // Calendar holes
+      ctx.fillStyle = '#667eea';
+      const holeRadius = size * 0.03;
+      ctx.beginPath();
+      ctx.arc(calX + calWidth * 0.25, calY, holeRadius, 0, Math.PI * 2);
+      ctx.arc(calX + calWidth * 0.75, calY, holeRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Checkmark
+      ctx.strokeStyle = '#667eea';
+      ctx.lineWidth = size * 0.08;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(calX + calWidth * 0.25, calY + calHeight * 0.6);
+      ctx.lineTo(calX + calWidth * 0.45, calY + calHeight * 0.8);
+      ctx.lineTo(calX + calWidth * 0.75, calY + calHeight * 0.45);
+      ctx.stroke();
+    }
+
+    function downloadIcon(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+    }
+
+    // Draw all icons on page load
+    window.onload = function() {
+      drawIcon(document.getElementById('icon16'));
+      drawIcon(document.getElementById('icon48'));
+      drawIcon(document.getElementById('icon128'));
+    };
+  </script>
+</body>
+</html>

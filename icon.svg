@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 背景円 -->
+  <circle cx="64" cy="64" r="60" fill="url(#grad)"/>
+
+  <!-- カレンダーアイコン -->
+  <rect x="30" y="35" width="68" height="60" rx="6" fill="white"/>
+  <rect x="30" y="35" width="68" height="15" rx="6" fill="white"/>
+  <rect x="30" y="35" width="68" height="15" fill="#f8f9fa"/>
+
+  <!-- カレンダーの穴 -->
+  <circle cx="45" cy="35" r="3" fill="url(#grad)"/>
+  <circle cx="83" cy="35" r="3" fill="url(#grad)"/>
+
+  <!-- チェックマーク -->
+  <path d="M 45 65 L 55 75 L 75 55"
+        stroke="#667eea"
+        stroke-width="6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+
+  <!-- カレンダーのグリッド線 -->
+  <line x1="35" y1="57" x2="93" y2="57" stroke="#e0e0e0" stroke-width="1"/>
+  <line x1="35" y1="68" x2="93" y2="68" stroke="#e0e0e0" stroke-width="1"/>
+  <line x1="35" y1="79" x2="93" y2="79" stroke="#e0e0e0" stroke-width="1"/>
+</svg>
