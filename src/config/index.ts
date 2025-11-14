@@ -1,32 +1,65 @@
 /**
  * 設定定数
+ *
+ * アプリケーション全体で使用される定数を定義します。
+ * すべての定数は意味のある名前を持ち、セルフドキュメンテーション化されています。
  */
 
 import type { MessagesMap } from '@/types';
 
+/**
+ * アプリケーション設定
+ */
 export const CONFIG = {
+  /** デバッグモード（本番環境では false に設定） */
+  DEBUG_MODE: true,
+
   // タイミング設定
+  /** カレンダー読み込みチェック間隔（ミリ秒） */
   INIT_CHECK_INTERVAL_MS: 500,
+  /** カレンダー読み込みタイムアウト（ミリ秒） */
   INIT_TIMEOUT_MS: 10000,
+  /** コピー成功メッセージの表示時間（ミリ秒） */
   COPY_SUCCESS_DISPLAY_MS: 2000,
+  /** エラー通知の表示時間（ミリ秒） */
   ERROR_NOTIFICATION_DISPLAY_MS: 3000,
+  /** カレンダー変更検知のデバウンス時間（ミリ秒） */
+  CALENDAR_CHANGE_DEBOUNCE_MS: 500,
+  /** スクロール/リサイズのデバウンス時間（ミリ秒） */
+  SCROLL_RESIZE_DEBOUNCE_MS: 100,
 
   // Google Calendar固有の値
+  /** Google Calendarの1時間あたりの高さ（ピクセル）- デフォルト値 */
   GCAL_HOUR_HEIGHT_PX: 48,
+  /** カレンダーの開始時刻（0-23） */
   GCAL_START_HOUR: 0,
-  HOURS_IN_DAY: 24,  // 1日の時間数
+  /** 1日の時間数 */
+  HOURS_IN_DAY: 24,
+
+  // グリッド解析の閾値
+  /** 時間グリッド本体と判定する最小高さ（ピクセル） */
+  MIN_GRID_HEIGHT_PX: 1000,
+  /** hourHeightの妥当な最小値（ピクセル/時） */
+  MIN_HOUR_HEIGHT_PX: 30,
+  /** hourHeightの妥当な最大値（ピクセル/時） */
+  MAX_HOUR_HEIGHT_PX: 100,
 
   // スナップ設定
+  /** 時間選択のスナップ間隔（分） */
   SNAP_MINUTES: 15,
 
   // ドラッグ設定
-  MIN_DRAG_DISTANCE_PX: 5,  // 最小ドラッグ距離（ピクセル）
+  /** 誤クリックを防ぐための最小ドラッグ距離（ピクセル） */
+  MIN_DRAG_DISTANCE_PX: 5,
 
   // UI スペーシング（ピクセル単位）
+  /** パネル内のデフォルトギャップ */
   PANEL_DEFAULT_GAP: 10,
+  /** パネルボタンの下マージン */
   PANEL_BUTTON_MARGIN_BOTTOM: 10,
 
   // デフォルト値
+  /** デフォルトのロケール設定 */
   DEFAULT_LOCALE: 'ja' as const,
 } as const;
 

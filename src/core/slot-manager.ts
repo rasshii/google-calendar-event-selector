@@ -1,9 +1,13 @@
 /**
  * タイムスロット管理
+ *
+ * 選択された時間スロットを管理し、UIとの連携を行います。
+ * デバッグログは CONFIG.DEBUG_MODE によって制御されます。
  */
 
 import type { TimeSlot } from '@/types';
 import { updateSlotList } from '@/ui/panel';
+import { Debug } from '@/utils/debug';
 
 export class SlotManager {
   private slots: TimeSlot[] = [];
@@ -12,7 +16,7 @@ export class SlotManager {
    * スロットを追加
    */
   addSlot(slot: TimeSlot): void {
-    console.log('➕ Adding slot:', {
+    Debug.log('SLOT', '➕ Adding slot:', {
       date: slot.date.toISOString().split('T')[0],
       dateKey: slot.column.dateKey,
       time: `${slot.startHour}:${String(slot.startMin).padStart(2, '0')}-${slot.endHour}:${String(slot.endMin).padStart(2, '0')}`
@@ -61,7 +65,7 @@ export class SlotManager {
   filterByVisibleDates(visibleDateKeys: Set<string>): void {
     const initialCount = this.slots.length;
 
-    console.log('🔍 Filtering slots:', {
+    Debug.log('SLOT', '🔍 Filtering slots:', {
       totalSlots: initialCount,
       visibleDateKeys: Array.from(visibleDateKeys),
       slotDateKeys: this.slots.map(s => s.column.dateKey)
@@ -72,7 +76,7 @@ export class SlotManager {
       const dateKey = slot.column.dateKey;
       const shouldRemove = !visibleDateKeys.has(dateKey);
       if (shouldRemove) {
-        console.log(`  ❌ Removing slot with dateKey: ${dateKey} (not in visible range)`);
+        Debug.log('SLOT', `  ❌ Removing slot with dateKey: ${dateKey} (not in visible range)`);
       }
       return shouldRemove;
     });
@@ -87,10 +91,10 @@ export class SlotManager {
 
     // 変更があった場合のみUIを更新
     if (initialCount !== this.slots.length) {
-      console.log(`✅ Removed ${initialCount - this.slots.length} out-of-view selections`);
+      Debug.log('SLOT', `✅ Removed ${initialCount - this.slots.length} out-of-view selections`);
       updateSlotList(this.slots, this);
     } else {
-      console.log('ℹ️ No slots removed (all are in visible range)');
+      Debug.log('SLOT', 'ℹ️ No slots removed (all are in visible range)');
     }
   }
 
@@ -104,13 +108,13 @@ export class SlotManager {
   isDuplicate(newSlot: TimeSlot): boolean {
     try {
       if (!newSlot || !newSlot.date) {
-        console.error('Invalid slot for duplicate check');
+        Debug.error('SLOT', 'Invalid slot for duplicate check');
         return true; // エラー時は重複扱いにして追加を防ぐ
       }
 
       // 日付が有効かチェック
       if (isNaN(newSlot.date.getTime())) {
-        console.error('Invalid date in slot');
+        Debug.error('SLOT', 'Invalid date in slot');
         return true;
       }
 
@@ -123,7 +127,7 @@ export class SlotManager {
           s.endMin === newSlot.endMin
       );
     } catch (error) {
-      console.error('Error checking for duplicate slot:', error);
+      Debug.error('SLOT', 'Error checking for duplicate slot:', error);
       return true; // エラー時は重複扱いにして追加を防ぐ
     }
   }

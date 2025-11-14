@@ -1,5 +1,9 @@
 /**
  * ドラッグハンドリング
+ *
+ * グリッドオーバーレイ上でのドラッグ操作を処理し、時間選択を管理します。
+ * Approach A実装の核心部分で、オーバーレイベースのイベントハンドリングを実現します。
+ * デバッグログは CONFIG.DEBUG_MODE によって制御されます。
  */
 
 import type { DragState, TimeSlot } from '@/types';
@@ -7,6 +11,7 @@ import { CONFIG } from '@/config';
 import { GridAnalyzer } from './grid-analyzer';
 import { SlotManager } from './slot-manager';
 import { updateTempOverlay, removeTempOverlay, createSelectionOverlay } from '@/ui/overlay';
+import { Debug } from '@/utils/debug';
 
 export class DragHandler {
   private dragState: DragState = {
@@ -42,15 +47,15 @@ export class DragHandler {
    * @param overlay - グリッドオーバーレイ要素
    */
   setGridOverlay(overlay: HTMLElement): void {
-    console.log('🎯 [DragHandler] Setting grid overlay');
-    console.log('  📊 Overlay info:', {
+    Debug.log('DRAG', '🎯 Setting grid overlay');
+    Debug.log('DRAG', '  📊 Overlay info:', {
       tagName: overlay.tagName,
       className: overlay.className,
       id: overlay.id,
       isConnected: overlay.isConnected
     });
     this.gridOverlay = overlay;
-    console.log('  ✅ Grid overlay set successfully');
+    Debug.log('DRAG', '  ✅ Grid overlay set successfully');
   }
 
   /**
@@ -61,14 +66,14 @@ export class DragHandler {
    * 選択モードOFF時はイベントが発火しません。
    */
   attachListeners(): void {
-    console.log('🔗 [DragHandler] Attaching event listeners...');
+    Debug.log('DRAG', '🔗 Attaching event listeners...');
 
     if (!this.gridOverlay) {
-      console.error('  ❌ Grid overlay not set. Call setGridOverlay() first.');
+      Debug.error('DRAG', '  ❌ Grid overlay not set. Call setGridOverlay() first.');
       return;
     }
 
-    console.log('  📊 Overlay state:', {
+    Debug.log('DRAG', '  📊 Overlay state:', {
       isConnected: this.gridOverlay.isConnected,
       parentElement: this.gridOverlay.parentElement?.tagName,
       className: this.gridOverlay.className
@@ -76,17 +81,17 @@ export class DragHandler {
 
     try {
       this.gridOverlay.addEventListener('mousedown', this.handleMouseDown);
-      console.log('  ✅ mousedown listener attached');
+      Debug.log('DRAG', '  ✅ mousedown listener attached');
 
       this.gridOverlay.addEventListener('mousemove', this.handleMouseMove);
-      console.log('  ✅ mousemove listener attached');
+      Debug.log('DRAG', '  ✅ mousemove listener attached');
 
       this.gridOverlay.addEventListener('mouseup', this.handleMouseUp);
-      console.log('  ✅ mouseup listener attached');
+      Debug.log('DRAG', '  ✅ mouseup listener attached');
 
-      console.log('  ✅ All event listeners attached successfully');
+      Debug.log('DRAG', '  ✅ All event listeners attached successfully');
     } catch (error) {
-      console.error('  ❌ Failed to attach listeners:', error);
+      Debug.error('DRAG', '  ❌ Failed to attach listeners:', error);
     }
   }
 
@@ -117,21 +122,21 @@ export class DragHandler {
    * 座標ベースでグリッド列を判定し、ドラッグ選択を開始します。
    */
   private handleMouseDown = (e: MouseEvent): void => {
-    console.log('🖱️  [DragHandler] ========== MouseDown Event ==========');
-    console.log('  📍 Mouse position:', { clientX: e.clientX, clientY: e.clientY });
-    console.log('  🎯 Target:', {
+    Debug.log('DRAG', '🖱️  ========== MouseDown Event ==========');
+    Debug.log('DRAG', '  📍 Mouse position:', { clientX: e.clientX, clientY: e.clientY });
+    Debug.log('DRAG', '  🎯 Target:', {
       tagName: (e.target as HTMLElement)?.tagName,
       className: (e.target as HTMLElement)?.className
     });
 
     // グリッド列位置を取得（座標ベースの判定）
-    console.log('  🔍 Finding column at X:', e.clientX);
+    Debug.log('DRAG', '  🔍 Finding column at X:', e.clientX);
     const column = this.gridAnalyzer.getColumnFromX(e.clientX);
 
     if (!column) {
-      console.warn('  ❌ No column found at X:', e.clientX);
+      Debug.warn('DRAG', '  ❌ No column found at X:', e.clientX);
       const allColumns = this.gridAnalyzer.getColumns();
-      console.warn('  Available columns:', allColumns.map(c => ({
+      Debug.warn('DRAG', '  Available columns:', allColumns.map(c => ({
         dateKey: c.dateKey,
         left: c.left,
         right: c.right
@@ -139,7 +144,7 @@ export class DragHandler {
       return;
     }
 
-    console.log('  ✅ Column found:', {
+    Debug.log('DRAG', '  ✅ Column found:', {
       dateKey: column.dateKey,
       date: column.date.toISOString().split('T')[0],
       bounds: { left: column.left, right: column.right, top: column.top },
@@ -158,13 +163,13 @@ export class DragHandler {
     this.dragState.currentY = e.clientY;
     this.dragState.dateColumn = column;
 
-    console.log('  ✅ Drag state initialized:', {
+    Debug.log('DRAG', '  ✅ Drag state initialized:', {
       isDragging: true,
       startPos: { x: e.clientX, y: e.clientY }
     });
 
     e.preventDefault();
-    console.log('🖱️  [DragHandler] ======================================');
+    Debug.log('DRAG', '🖱️  ======================================');
   };
 
   /**
@@ -199,12 +204,12 @@ export class DragHandler {
    */
   private handleMouseUp = (e: MouseEvent): void => {
     if (!this.dragState.isDragging || !this.dragState.dateColumn) {
-      console.log('ℹ️  [DragHandler] MouseUp ignored: not in dragging state');
+      Debug.log('DRAG', 'ℹ️  MouseUp ignored: not in dragging state');
       return;
     }
 
-    console.log('🖱️  [DragHandler] ========== MouseUp Event ==========');
-    console.log('  📍 Mouse position:', {
+    Debug.log('DRAG', '🖱️  ========== MouseUp Event ==========');
+    Debug.log('DRAG', '  📍 Mouse position:', {
       clientX: e.clientX,
       clientY: e.clientY,
       startY: this.dragState.startY,
@@ -217,10 +222,10 @@ export class DragHandler {
     // 最小限のドラッグ距離をチェック（誤クリックを防ぐ）
     const deltaY = Math.abs(this.dragState.currentY - this.dragState.startY);
     if (deltaY < CONFIG.MIN_DRAG_DISTANCE_PX) {
-      console.log('  ⚠️  Drag distance too small:', deltaY, '< minimum:', CONFIG.MIN_DRAG_DISTANCE_PX);
+      Debug.log('DRAG', '  ⚠️  Drag distance too small:', deltaY, '< minimum:', CONFIG.MIN_DRAG_DISTANCE_PX);
       removeTempOverlay(this.dragState.tempOverlay);
       this.dragState.tempOverlay = null;
-      console.log('  🗑️  Temp overlay removed, no slot created');
+      Debug.log('DRAG', '  🗑️  Temp overlay removed, no slot created');
       return;
     }
 
@@ -228,7 +233,7 @@ export class DragHandler {
     const minY = Math.min(this.dragState.startY, this.dragState.currentY);
     const maxY = Math.max(this.dragState.startY, this.dragState.currentY);
 
-    console.log('  📏 Calculating time from Y coordinates:', {
+    Debug.log('DRAG', '  📏 Calculating time from Y coordinates:', {
       minY,
       maxY,
       columnTop: this.dragState.dateColumn.element.getBoundingClientRect().top,
@@ -238,7 +243,7 @@ export class DragHandler {
     const startTime = this.gridAnalyzer.getTimeFromY(minY, this.dragState.dateColumn.element);
     const endTime = this.gridAnalyzer.getTimeFromY(maxY, this.dragState.dateColumn.element);
 
-    console.log('  ⏰ Calculated times:', {
+    Debug.log('DRAG', '  ⏰ Calculated times:', {
       startTime: `${startTime.hour}:${String(startTime.minute).padStart(2, '0')}`,
       endTime: `${endTime.hour}:${String(endTime.minute).padStart(2, '0')}`
     });
@@ -254,7 +259,7 @@ export class DragHandler {
       column: this.dragState.dateColumn,
     };
 
-    console.log('  📅 Created time slot:', {
+    Debug.log('DRAG', '  📅 Created time slot:', {
       date: slot.date.toISOString().split('T')[0],
       time: `${slot.startHour}:${String(slot.startMin).padStart(2, '0')} - ${slot.endHour}:${String(slot.endMin).padStart(2, '0')}`,
       dateKey: slot.column.dateKey
@@ -262,24 +267,24 @@ export class DragHandler {
 
     // 重複チェックして追加
     const isDuplicate = this.slotManager.isDuplicate(slot);
-    console.log('  🔍 Duplicate check:', isDuplicate ? 'YES (will not add)' : 'NO (will add)');
+    Debug.log('DRAG', '  🔍 Duplicate check:', isDuplicate ? 'YES (will not add)' : 'NO (will add)');
 
     if (!isDuplicate) {
-      console.log('  🎨 Creating selection overlay...');
+      Debug.log('DRAG', '  🎨 Creating selection overlay...');
       slot.overlay = createSelectionOverlay(slot, this.dragState.dateColumn, this.gridAnalyzer);
 
-      console.log('  ➕ Adding slot to manager...');
+      Debug.log('DRAG', '  ➕ Adding slot to manager...');
       this.slotManager.addSlot(slot);
-      console.log('  ✅ Slot added successfully');
+      Debug.log('DRAG', '  ✅ Slot added successfully');
     } else {
-      console.log('  ⚠️  Duplicate slot, not added');
+      Debug.log('DRAG', '  ⚠️  Duplicate slot, not added');
     }
 
-    console.log('  🗑️  Removing temp overlay...');
+    Debug.log('DRAG', '  🗑️  Removing temp overlay...');
     removeTempOverlay(this.dragState.tempOverlay);
     this.dragState.tempOverlay = null;
 
     e.preventDefault();
-    console.log('🖱️  [DragHandler] ======================================');
+    Debug.log('DRAG', '🖱️  ======================================');
   };
 }

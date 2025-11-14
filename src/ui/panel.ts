@@ -1,5 +1,7 @@
 /**
  * パネルUI管理
+ *
+ * 選択された時間スロットを表示し、ユーザー操作を処理するUIパネルを管理します。
  */
 
 import type { TimeSlot, PanelDragState } from '@/types';
@@ -9,6 +11,7 @@ import { formatSlot } from '@/utils/formatter';
 import { SlotManager } from '@/core/slot-manager';
 import { SelectionModeManager } from '@/core/selection-mode-manager';
 import { showErrorNotification } from './notification';
+import { Debug } from '@/utils/debug';
 
 /**
  * パネルのクリーンアップ関数型
@@ -302,7 +305,7 @@ export function updateSlotList(slots: TimeSlot[], slotManager: SlotManager): voi
   const clearBtn = document.querySelector(SELECTORS.CLEAR_BTN) as HTMLButtonElement;
 
   if (!eventListContainer || !copyBtn || !clearBtn) {
-    console.error('UI要素が見つかりません:', {
+    Debug.error('APP', 'UI要素が見つかりません:', {
       eventListContainer: !!eventListContainer,
       copyBtn: !!copyBtn,
       clearBtn: !!clearBtn
@@ -436,7 +439,7 @@ function copySelectedSlots(): void {
       copyBtn.style.backgroundColor = '';
     }, CONFIG.COPY_SUCCESS_DISPLAY_MS);
   }).catch((err: Error) => {
-    console.error('コピーに失敗:', err.message, err.stack);
+    Debug.error('APP', 'コピーに失敗:', err.message, err.stack);
     showErrorNotification(getMessage('errorCopyFailed'));
   });
 }

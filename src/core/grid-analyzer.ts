@@ -1,10 +1,14 @@
 /**
  * カレンダーグリッド解析
+ *
+ * Google Calendarのグリッド構造を解析し、時間スロットの座標計算を行います。
+ * デバッグログは CONFIG.DEBUG_MODE によって制御されます。
  */
 
 import type { GridCache, GridColumn, TimeCoordinate } from '@/types';
 import { CONFIG } from '@/config';
 import { snapToGrid, clampHour, clampMinute } from '@/utils/time';
+import { Debug } from '@/utils/debug';
 
 export class GridAnalyzer {
   private gridCache: GridCache = {
@@ -26,41 +30,40 @@ export class GridAnalyzer {
    */
   analyze(): boolean {
     try {
-      console.log('🔍 ========== ANALYZING CALENDAR GRID ==========');
+      Debug.log('GRID', '🔍 ========== ANALYZING CALENDAR GRID ==========');
 
       // ステップ1: data-datekey属性を持つ要素をすべて取得
       const allDateKeyElements = document.querySelectorAll<HTMLElement>('[data-datekey]');
-      console.log(`📋 Found ${allDateKeyElements.length} elements with [data-datekey]`);
+      Debug.log('GRID', `📋 Found ${allDateKeyElements.length} elements with [data-datekey]`);
 
       if (allDateKeyElements.length === 0) {
-        console.error('❌ No elements with [data-datekey] found');
+        Debug.error('GRID', '❌ No elements with [data-datekey] found');
         return false;
       }
 
       // ステップ2: 時間グリッド本体のみをフィルタリング
       // Google Calendarの週表示では、時間グリッド本体は通常1000px以上の高さを持つ
-      const MIN_GRID_HEIGHT = 1000; // 24時間 × 約48px/時 = 1152px程度
       const timeGrids = Array.from(allDateKeyElements).filter(el => {
         const height = el.offsetHeight;
-        const hasValidDimensions = height > MIN_GRID_HEIGHT && el.offsetWidth > 0;
+        const hasValidDimensions = height > CONFIG.MIN_GRID_HEIGHT_PX && el.offsetWidth > 0;
 
         if (height > 0) {
-          console.log(`  📊 Element height: ${height}px, width: ${el.offsetWidth}px, dateKey: ${el.getAttribute('data-datekey')} ${hasValidDimensions ? '✅' : '❌'}`);
+          Debug.log('GRID', `  📊 Element height: ${height}px, width: ${el.offsetWidth}px, dateKey: ${el.getAttribute('data-datekey')} ${hasValidDimensions ? '✅' : '❌'}`);
         }
 
         return hasValidDimensions;
       });
 
-      console.log(`✅ Filtered to ${timeGrids.length} valid time grid elements (height > ${MIN_GRID_HEIGHT}px)`);
+      Debug.log('GRID', `✅ Filtered to ${timeGrids.length} valid time grid elements (height > ${CONFIG.MIN_GRID_HEIGHT_PX}px)`);
 
       if (timeGrids.length === 0) {
-        console.error('❌ No valid time grid elements found. Are you in week view?');
+        Debug.error('GRID', '❌ No valid time grid elements found. Are you in week view?');
         return false;
       }
 
       // デバッグ: 最初のグリッド要素の詳細を表示
       const firstGrid = timeGrids[0];
-      console.log('📝 First grid details:', {
+      Debug.log('GRID', '📝 First grid details:', {
         tagName: firstGrid.tagName,
         className: firstGrid.className,
         offsetHeight: firstGrid.offsetHeight,
@@ -75,7 +78,7 @@ export class GridAnalyzer {
       timeGrids.forEach((grid, index) => {
         const dateKey = grid.getAttribute('data-datekey');
         if (!dateKey) {
-          console.warn(`⚠️  Grid ${index} missing data-datekey attribute`);
+          Debug.warn('GRID', `⚠️  Grid ${index} missing data-datekey attribute`);
           return;
         }
 
@@ -90,7 +93,7 @@ export class GridAnalyzer {
         const date = this.parseDateKey(dateKey, grid);
 
         if (!date || isNaN(date.getTime())) {
-          console.warn(`⚠️  Invalid date for dateKey: ${dateKey}`);
+          Debug.warn('GRID', `⚠️  Invalid date for dateKey: ${dateKey}`);
           return;
         }
 
@@ -106,34 +109,34 @@ export class GridAnalyzer {
       });
 
       if (this.gridCache.columns.length === 0) {
-        console.error('❌ No valid columns created');
+        Debug.error('GRID', '❌ No valid columns created');
         return false;
       }
 
       // 左から順にソート
       this.gridCache.columns.sort((a, b) => a.left - b.left);
-      console.log(`📊 Created ${this.gridCache.columns.length} grid columns`);
+      Debug.log('GRID', `📊 Created ${this.gridCache.columns.length} grid columns`);
 
       // ステップ4: 1時間あたりの高さを計算
       this.gridCache.hourHeight = this.calculateHourHeight(this.gridCache.columns[0].element);
 
       if (this.gridCache.hourHeight <= 0) {
-        console.error('❌ Failed to calculate valid hour height');
+        Debug.error('GRID', '❌ Failed to calculate valid hour height');
         return false;
       }
 
       this.gridCache.gridTop = this.gridCache.columns[0].top + window.scrollY;
 
-      console.log('✅ Grid analysis complete:', {
+      Debug.log('GRID', '✅ Grid analysis complete:', {
         columns: this.gridCache.columns.length,
         hourHeight: this.gridCache.hourHeight,
         gridTop: this.gridCache.gridTop
       });
-      console.log('🔍 ==========================================');
+      Debug.log('GRID', '🔍 ==========================================');
 
       return true;
     } catch (error) {
-      console.error('❌ Failed to analyze calendar grid:', error);
+      Debug.error('GRID', '❌ Failed to analyze calendar grid:', error);
       return false;
     }
   }
@@ -150,33 +153,33 @@ export class GridAnalyzer {
    * @returns 1時間あたりのピクセル高さ
    */
   private calculateHourHeight(gridElement: HTMLElement): number {
-    console.log('📏 Calculating hour height...');
+    Debug.log('GRID', '📏 Calculating hour height...');
 
     // 方法1: 時間マーカー要素から測定
     // Google Calendarでは、時間を示す要素（0:00, 1:00など）が存在する
     // これらの間隔を測定することで正確なhourHeightを得られる
     const hourHeight = this.measureHourHeightFromTimeMarkers(gridElement);
     if (hourHeight > 0) {
-      console.log(`✅ Hour height from time markers: ${hourHeight}px`);
+      Debug.log('GRID', `✅ Hour height from time markers: ${hourHeight}px`);
       return hourHeight;
     }
 
     // 方法2: グリッド全体の高さから計算
     const totalHeight = gridElement.offsetHeight;
-    console.log(`📊 Grid total height: ${totalHeight}px`);
+    Debug.log('GRID', `📊 Grid total height: ${totalHeight}px`);
 
     // 高さが妥当な範囲内かチェック（24時間 × 30〜100px/時 = 720〜2400px）
-    const MIN_TOTAL_HEIGHT = 720;  // 24時間 × 30px/時
-    const MAX_TOTAL_HEIGHT = 2400; // 24時間 × 100px/時
+    const MIN_TOTAL_HEIGHT = CONFIG.HOURS_IN_DAY * CONFIG.MIN_HOUR_HEIGHT_PX;
+    const MAX_TOTAL_HEIGHT = CONFIG.HOURS_IN_DAY * CONFIG.MAX_HOUR_HEIGHT_PX;
 
     if (totalHeight >= MIN_TOTAL_HEIGHT && totalHeight <= MAX_TOTAL_HEIGHT) {
       const calculatedHeight = totalHeight / CONFIG.HOURS_IN_DAY;
-      console.log(`✅ Hour height from grid height: ${calculatedHeight}px (${totalHeight}px / 24)`);
+      Debug.log('GRID', `✅ Hour height from grid height: ${calculatedHeight}px (${totalHeight}px / 24)`);
       return calculatedHeight;
     }
 
     // 方法3: デフォルト値を使用（最後の手段）
-    console.warn(`⚠️  Grid height ${totalHeight}px is outside expected range, using default: ${CONFIG.GCAL_HOUR_HEIGHT_PX}px`);
+    Debug.warn('GRID', `⚠️  Grid height ${totalHeight}px is outside expected range, using default: ${CONFIG.GCAL_HOUR_HEIGHT_PX}px`);
     return CONFIG.GCAL_HOUR_HEIGHT_PX;
   }
 
@@ -203,7 +206,7 @@ export class GridAnalyzer {
         .filter((el): el is HTMLElement => el instanceof HTMLElement);
 
       if (timeElements.length < 2) {
-        console.log('⚠️  Not enough time marker elements found');
+        Debug.log('GRID', '⚠️  Not enough time marker elements found');
         return 0;
       }
 
@@ -214,8 +217,8 @@ export class GridAnalyzer {
         const next = timeElements[i + 1].getBoundingClientRect();
         const distance = next.top - current.top;
 
-        // 妥当な値のみを採用（30〜100pxの範囲）
-        if (distance >= 30 && distance <= 100) {
+        // 妥当な値のみを採用
+        if (distance >= CONFIG.MIN_HOUR_HEIGHT_PX && distance <= CONFIG.MAX_HOUR_HEIGHT_PX) {
           measurements.push(distance);
         }
       }
@@ -228,11 +231,11 @@ export class GridAnalyzer {
       measurements.sort((a, b) => a - b);
       const median = measurements[Math.floor(measurements.length / 2)];
 
-      console.log(`📏 Time marker measurements: [${measurements.join(', ')}]px, median: ${median}px`);
+      Debug.log('GRID', `📏 Time marker measurements: [${measurements.join(', ')}]px, median: ${median}px`);
 
       return median;
     } catch (error) {
-      console.warn('⚠️  Failed to measure hour height from time markers:', error);
+      Debug.warn('GRID', '⚠️  Failed to measure hour height from time markers:', error);
       return 0;
     }
   }
@@ -250,12 +253,12 @@ export class GridAnalyzer {
   getTimeFromY(y: number, columnElement: HTMLElement): TimeCoordinate {
     // 入力値のバリデーション
     if (!Number.isFinite(y)) {
-      console.error('Invalid Y coordinate', { y });
+      Debug.error('GRID', 'Invalid Y coordinate', { y });
       return { hour: 0, minute: 0 };
     }
 
     if (!columnElement) {
-      console.error('Column element is null or undefined');
+      Debug.error('GRID', 'Column element is null or undefined');
       return { hour: 0, minute: 0 };
     }
 
@@ -265,7 +268,7 @@ export class GridAnalyzer {
 
       // 時間の高さが有効かチェック
       if (this.gridCache.hourHeight <= 0) {
-        console.error('Invalid hour height', { hourHeight: this.gridCache.hourHeight });
+        Debug.error('GRID', 'Invalid hour height', { hourHeight: this.gridCache.hourHeight });
         return { hour: 0, minute: 0 };
       }
 
@@ -274,7 +277,7 @@ export class GridAnalyzer {
 
       // NaN チェック
       if (!Number.isFinite(totalMinutes)) {
-        console.error('Calculated totalMinutes is not finite', { relativeY, hourHeight: this.gridCache.hourHeight });
+        Debug.error('GRID', 'Calculated totalMinutes is not finite', { relativeY, hourHeight: this.gridCache.hourHeight });
         return { hour: 0, minute: 0 };
       }
 
@@ -290,7 +293,7 @@ export class GridAnalyzer {
         minute: clampMinute(minute),
       };
     } catch (error) {
-      console.error('Error calculating time from Y coordinate:', error);
+      Debug.error('GRID', 'Error calculating time from Y coordinate:', error);
       return { hour: 0, minute: 0 };
     }
   }
@@ -307,7 +310,7 @@ export class GridAnalyzer {
   getColumnFromX(x: number): GridColumn | null {
     // 入力値のバリデーション
     if (!Number.isFinite(x)) {
-      console.error('Invalid X coordinate', { x });
+      Debug.error('GRID', 'Invalid X coordinate', { x });
       return null;
     }
 
@@ -343,7 +346,7 @@ export class GridAnalyzer {
 
       return null;
     } catch (error) {
-      console.error('Error finding column from X coordinate:', error);
+      Debug.error('GRID', 'Error finding column from X coordinate:', error);
       return null;
     }
   }
@@ -379,7 +382,7 @@ export class GridAnalyzer {
    * ```typescript
    * const columns = gridAnalyzer.getColumns();
    * columns.forEach(col => {
-   *   console.log(`Date: ${col.date}, Width: ${col.width}px`);
+   *   Debug.log('GRID', `Date: ${col.date}, Width: ${col.width}px`);
    * });
    * ```
    */
@@ -426,14 +429,14 @@ export class GridAnalyzer {
    */
   private parseDateKey(dateKey: string, element: HTMLElement): Date | null {
     try {
-      console.log(`🔍 Parsing dateKey: "${dateKey}"`);
+      Debug.log('GRID', `🔍 Parsing dateKey: "${dateKey}"`);
 
       // YYYYMMDD形式（8桁）の場合
       if (/^\d{8}$/.test(dateKey)) {
         const year = parseInt(dateKey.substring(0, 4), 10);
         const month = parseInt(dateKey.substring(4, 6), 10) - 1;
         const day = parseInt(dateKey.substring(6, 8), 10);
-        console.log(`  ✅ Parsed as YYYYMMDD: ${year}-${month + 1}-${day}`);
+        Debug.log('GRID', `  ✅ Parsed as YYYYMMDD: ${year}-${month + 1}-${day}`);
         return new Date(year, month, day);
       }
 
@@ -443,16 +446,16 @@ export class GridAnalyzer {
         const year = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10) - 1;
         const day = parseInt(parts[2], 10);
-        console.log(`  ✅ Parsed as YYYY-MM-DD: ${year}-${month + 1}-${day}`);
+        Debug.log('GRID', `  ✅ Parsed as YYYY-MM-DD: ${year}-${month + 1}-${day}`);
         return new Date(year, month, day);
       }
 
       // 新戦略: 同じdatekeyを持つすべての要素から日付情報を探す
-      console.log(`  🔍 data-datekey is a serial number (${dateKey}), searching for date info...`);
+      Debug.log('GRID', `  🔍 data-datekey is a serial number (${dateKey}), searching for date info...`);
 
       // 同じdatekeyを持つすべての要素を取得
       const allElementsWithSameDateKey = document.querySelectorAll(`[data-datekey="${dateKey}"]`);
-      console.log(`  📊 Found ${allElementsWithSameDateKey.length} elements with datekey="${dateKey}"`);
+      Debug.log('GRID', `  📊 Found ${allElementsWithSameDateKey.length} elements with datekey="${dateKey}"`);
 
       // それぞれの要素をチェック
       for (const el of Array.from(allElementsWithSameDateKey)) {
@@ -461,10 +464,10 @@ export class GridAnalyzer {
         // aria-labelをチェック
         const ariaLabel = htmlEl.getAttribute('aria-label');
         if (ariaLabel) {
-          console.log(`  🔍 Checking aria-label: "${ariaLabel}"`);
+          Debug.log('GRID', `  🔍 Checking aria-label: "${ariaLabel}"`);
           const dateFromAria = this.extractDateFromAriaLabel(ariaLabel);
           if (dateFromAria) {
-            console.log(`  ✅ Extracted date from aria-label:`, dateFromAria);
+            Debug.log('GRID', `  ✅ Extracted date from aria-label:`, dateFromAria);
             return dateFromAria;
           }
         }
@@ -472,29 +475,29 @@ export class GridAnalyzer {
         // textContentをチェック
         const text = htmlEl.textContent?.trim();
         if (text) {
-          console.log(`  🔍 Checking textContent: "${text.substring(0, 100)}"`);
+          Debug.log('GRID', `  🔍 Checking textContent: "${text.substring(0, 100)}"`);
           const dateFromText = this.extractDateFromText(text);
           if (dateFromText) {
-            console.log(`  ✅ Extracted date from textContent:`, dateFromText);
+            Debug.log('GRID', `  ✅ Extracted date from textContent:`, dateFromText);
             return dateFromText;
           }
         }
       }
 
       // 親要素や子要素から日付情報を探す
-      console.log(`  🔍 Searching in parent/child elements...`);
+      Debug.log('GRID', `  🔍 Searching in parent/child elements...`);
       const dateFromDOM = this.searchDateInDOM(element);
       if (dateFromDOM) {
-        console.log(`  ✅ Found date in DOM:`, dateFromDOM);
+        Debug.log('GRID', `  ✅ Found date in DOM:`, dateFromDOM);
         return dateFromDOM;
       }
 
       // すべて失敗した場合
-      console.error(`  ❌ Failed to parse date from dateKey: "${dateKey}"`);
+      Debug.error('GRID', `  ❌ Failed to parse date from dateKey: "${dateKey}"`);
       return null;
 
     } catch (error) {
-      console.error('Error parsing date key:', { dateKey, error });
+      Debug.error('GRID', 'Error parsing date key:', { dateKey, error });
       return null;
     }
   }
@@ -504,7 +507,7 @@ export class GridAnalyzer {
    */
   private extractDateFromAriaLabel(ariaLabel: string): Date | null {
     try {
-      console.log(`  🔍 Extracting date from aria-label: "${ariaLabel}"`);
+      Debug.log('GRID', `  🔍 Extracting date from aria-label: "${ariaLabel}"`);
 
       // 日本語形式1: "2025年1月19日"（年あり）
       const jaMatchWithYear = ariaLabel.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
@@ -512,7 +515,7 @@ export class GridAnalyzer {
         const year = parseInt(jaMatchWithYear[1], 10);
         const month = parseInt(jaMatchWithYear[2], 10) - 1;
         const day = parseInt(jaMatchWithYear[3], 10);
-        console.log(`  ✅ Matched Japanese format with year: ${year}-${month + 1}-${day}`);
+        Debug.log('GRID', `  ✅ Matched Japanese format with year: ${year}-${month + 1}-${day}`);
         return new Date(year, month, day);
       }
 
@@ -523,7 +526,7 @@ export class GridAnalyzer {
         const day = parseInt(jaMatchNoYear[2], 10);
         // 現在の年を使用
         const currentYear = new Date().getFullYear();
-        console.log(`  ✅ Matched Japanese format without year: ${currentYear}-${month + 1}-${day} (using current year)`);
+        Debug.log('GRID', `  ✅ Matched Japanese format without year: ${currentYear}-${month + 1}-${day} (using current year)`);
         return new Date(currentYear, month, day);
       }
 
@@ -534,7 +537,7 @@ export class GridAnalyzer {
         const day = parseInt(enMatchWithYear[2], 10);
         const year = parseInt(enMatchWithYear[3], 10);
         const monthIndex = new Date(`${monthStr} 1, 2000`).getMonth();
-        console.log(`  ✅ Matched English format with year: ${year}-${monthIndex + 1}-${day}`);
+        Debug.log('GRID', `  ✅ Matched English format with year: ${year}-${monthIndex + 1}-${day}`);
         return new Date(year, monthIndex, day);
       }
 
@@ -545,14 +548,14 @@ export class GridAnalyzer {
         const day = parseInt(enMatchNoYear[2] || enMatchNoYear[3], 10);
         const currentYear = new Date().getFullYear();
         const monthIndex = new Date(`${monthStr} 1, 2000`).getMonth();
-        console.log(`  ✅ Matched English format without year: ${currentYear}-${monthIndex + 1}-${day} (using current year)`);
+        Debug.log('GRID', `  ✅ Matched English format without year: ${currentYear}-${monthIndex + 1}-${day} (using current year)`);
         return new Date(currentYear, monthIndex, day);
       }
 
-      console.log(`  ❌ No date pattern matched in aria-label`);
+      Debug.log('GRID', `  ❌ No date pattern matched in aria-label`);
       return null;
     } catch (error) {
-      console.error(`  ❌ Error extracting date:`, error);
+      Debug.error('GRID', `  ❌ Error extracting date:`, error);
       return null;
     }
   }

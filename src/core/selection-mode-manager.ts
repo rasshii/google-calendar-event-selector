@@ -1,6 +1,11 @@
 /**
  * 選択モード管理
+ *
+ * 選択モードのON/OFF状態を管理し、状態変更を監視するリスナーに通知します。
+ * デバッグログは CONFIG.DEBUG_MODE によって制御されます。
  */
+
+import { Debug } from '@/utils/debug';
 
 export class SelectionModeManager {
   private isActive = false;
@@ -12,7 +17,7 @@ export class SelectionModeManager {
   toggle(): void {
     const previousState = this.isActive;
     this.isActive = !this.isActive;
-    console.log(`🔄 [SelectionMode] Toggled: ${previousState} → ${this.isActive}`);
+    Debug.log('SELECTION', `🔄 Toggled: ${previousState} → ${this.isActive}`);
     this.notifyListeners();
   }
 
@@ -21,11 +26,11 @@ export class SelectionModeManager {
    */
   activate(): void {
     if (!this.isActive) {
-      console.log('🟢 [SelectionMode] Activating selection mode');
+      Debug.log('SELECTION', '🟢 Activating selection mode');
       this.isActive = true;
       this.notifyListeners();
     } else {
-      console.log('ℹ️ [SelectionMode] Already active, no change');
+      Debug.log('SELECTION', 'ℹ️ Already active, no change');
     }
   }
 
@@ -34,11 +39,11 @@ export class SelectionModeManager {
    */
   deactivate(): void {
     if (this.isActive) {
-      console.log('🔴 [SelectionMode] Deactivating selection mode');
+      Debug.log('SELECTION', '🔴 Deactivating selection mode');
       this.isActive = false;
       this.notifyListeners();
     } else {
-      console.log('ℹ️ [SelectionMode] Already inactive, no change');
+      Debug.log('SELECTION', 'ℹ️ Already inactive, no change');
     }
   }
 
@@ -67,15 +72,15 @@ export class SelectionModeManager {
    * すべてのリスナーに通知
    */
   private notifyListeners(): void {
-    console.log(`📢 [SelectionMode] Notifying ${this.listeners.size} listener(s): isActive=${this.isActive}`);
+    Debug.log('SELECTION', `📢 Notifying ${this.listeners.size} listener(s): isActive=${this.isActive}`);
     let listenerIndex = 0;
     this.listeners.forEach(listener => {
       try {
-        console.log(`  ├─ Calling listener #${++listenerIndex}`);
+        Debug.log('SELECTION', `  ├─ Calling listener #${++listenerIndex}`);
         listener(this.isActive);
-        console.log(`  └─ Listener #${listenerIndex} completed`);
+        Debug.log('SELECTION', `  └─ Listener #${listenerIndex} completed`);
       } catch (error) {
-        console.error(`  └─ ❌ Listener #${listenerIndex} failed:`, error);
+        Debug.error('SELECTION', `  └─ ❌ Listener #${listenerIndex} failed:`, error);
       }
     });
   }

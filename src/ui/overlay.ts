@@ -1,10 +1,14 @@
 /**
  * オーバーレイ管理
+ *
+ * 選択範囲の視覚的フィードバックとグリッドオーバーレイ（Approach A）を管理します。
+ * デバッグログは CONFIG.DEBUG_MODE によって制御されます。
  */
 
 import type { TimeSlot, GridColumn } from '@/types';
 import { CSS_CLASSES, COLORS, Z_INDEX, CONFIG } from '@/config';
 import { GridAnalyzer } from '@/core/grid-analyzer';
+import { Debug } from '@/utils/debug';
 
 /**
  * 一時的な選択オーバーレイを作成・更新
@@ -49,7 +53,7 @@ export function updateTempOverlay(
 
     if (height === 0) {
       // 高さ0の場合は最小限の高さを設定（視覚的フィードバックのため）
-      console.debug('⚠️  Overlay height is 0, setting minimum height');
+      Debug.warn('OVERLAY', '⚠️  Overlay height is 0, setting minimum height');
     }
 
     // グリッド要素の境界内に収まるように制限
@@ -58,7 +62,7 @@ export function updateTempOverlay(
     const clampedHeight = Math.min(height, maxHeight);
 
     if (clampedHeight !== height) {
-      console.debug(`⚠️  Overlay height clamped: ${height}px -> ${clampedHeight}px`);
+      Debug.warn('OVERLAY', `⚠️  Overlay height clamped: ${height}px -> ${clampedHeight}px`);
     }
 
     // オーバーレイ要素の取得または作成
@@ -86,7 +90,7 @@ export function updateTempOverlay(
 
     return overlay;
   } catch (error) {
-    console.error('❌ Error updating temp overlay:', error, {
+    Debug.error('OVERLAY', '❌ Error updating temp overlay:', error, {
       column: column ? {
         dateKey: column.dateKey,
         elementHeight: column.element?.offsetHeight,
@@ -151,20 +155,18 @@ export function createSelectionOverlay(
       throw new Error(`Invalid hour height: ${hourHeight}px`);
     }
 
-    // hourHeightの妥当性を追加チェック（30〜100px/時の範囲）
-    const MIN_HOUR_HEIGHT = 30;
-    const MAX_HOUR_HEIGHT = 100;
-    if (hourHeight < MIN_HOUR_HEIGHT || hourHeight > MAX_HOUR_HEIGHT) {
-      console.warn(`⚠️  Hour height ${hourHeight}px is outside expected range (${MIN_HOUR_HEIGHT}-${MAX_HOUR_HEIGHT}px)`);
+    // hourHeightの妥当性を追加チェック
+    if (hourHeight < CONFIG.MIN_HOUR_HEIGHT_PX || hourHeight > CONFIG.MAX_HOUR_HEIGHT_PX) {
+      Debug.warn('OVERLAY', `⚠️  Hour height ${hourHeight}px is outside expected range (${CONFIG.MIN_HOUR_HEIGHT_PX}-${CONFIG.MAX_HOUR_HEIGHT_PX}px)`);
     }
 
     // グリッド要素の高さを検証
     const gridHeight = column.element.offsetHeight;
-    const expectedMinHeight = CONFIG.HOURS_IN_DAY * MIN_HOUR_HEIGHT; // 24 × 30 = 720px
+    const expectedMinHeight = CONFIG.HOURS_IN_DAY * CONFIG.MIN_HOUR_HEIGHT_PX;
 
     if (gridHeight < expectedMinHeight) {
-      console.warn(`⚠️  Grid element height ${gridHeight}px seems too small (expected >= ${expectedMinHeight}px)`);
-      console.warn('    This may indicate that the wrong element was selected as the time grid');
+      Debug.warn('OVERLAY', `⚠️  Grid element height ${gridHeight}px seems too small (expected >= ${expectedMinHeight}px)`);
+      Debug.warn('OVERLAY', '    This may indicate that the wrong element was selected as the time grid');
     }
 
     // オーバーレイの位置とサイズを計算
@@ -181,11 +183,11 @@ export function createSelectionOverlay(
     }
 
     if (top < 0 || top + height > gridHeight) {
-      console.warn(`⚠️  Overlay extends beyond grid bounds: top=${top}, height=${height}, gridHeight=${gridHeight}`);
+      Debug.warn('OVERLAY', `⚠️  Overlay extends beyond grid bounds: top=${top}, height=${height}, gridHeight=${gridHeight}`);
     }
 
     // デバッグ情報を出力
-    console.log('📍 Creating selection overlay:', {
+    Debug.log('OVERLAY', '📍 Creating selection overlay:', {
       time: `${slot.startHour}:${String(slot.startMin).padStart(2, '0')} - ${slot.endHour}:${String(slot.endMin).padStart(2, '0')}`,
       hourHeight: `${hourHeight}px`,
       gridHeight: `${gridHeight}px`,
@@ -212,7 +214,7 @@ export function createSelectionOverlay(
     column.element.appendChild(overlay);
     return overlay;
   } catch (error) {
-    console.error('❌ Error creating selection overlay:', error, {
+    Debug.error('OVERLAY', '❌ Error creating selection overlay:', error, {
       slot,
       column: column ? {
         dateKey: column.dateKey,
@@ -242,22 +244,22 @@ export function createSelectionOverlay(
  * @returns 作成されたオーバーレイ要素
  */
 export function createGridOverlay(gridAnalyzer: GridAnalyzer): HTMLElement {
-  console.log('🎨 [Overlay] ========== Creating Grid Overlay ==========');
+  Debug.log('OVERLAY', '🎨 ========== Creating Grid Overlay ==========');
 
   const overlay = document.createElement('div');
   overlay.className = CSS_CLASSES.GRID_OVERLAY;
   overlay.setAttribute('data-gcal-overlay', 'true');
-  console.log('  ✅ Created overlay element with class:', CSS_CLASSES.GRID_OVERLAY);
+  Debug.log('OVERLAY', '  ✅ Created overlay element with class:', CSS_CLASSES.GRID_OVERLAY);
 
   // グリッド列を取得
   const columns = gridAnalyzer.getColumns();
-  console.log(`  📊 Retrieved ${columns.length} grid columns`);
+  Debug.log('OVERLAY', `  📊 Retrieved ${columns.length} grid columns`);
 
   if (columns.length === 0) {
-    console.error('  ❌ No grid columns found for overlay creation');
+    Debug.error('OVERLAY', '  ❌ No grid columns found for overlay creation');
     overlay.style.display = 'none';
     document.body.appendChild(overlay);
-    console.log('  ⚠️  Added hidden overlay to body as fallback');
+    Debug.warn('OVERLAY', '  ⚠️  Added hidden overlay to body as fallback');
     return overlay;
   }
 
@@ -273,7 +275,7 @@ export function createGridOverlay(gridAnalyzer: GridAnalyzer): HTMLElement {
     height: firstColumn.element.offsetHeight
   };
 
-  console.log('  📐 Calculated grid bounds:', {
+  Debug.log('OVERLAY', '  📐 Calculated grid bounds:', {
     top: `${gridBounds.top}px`,
     left: `${gridBounds.left}px`,
     right: `${gridBounds.right}px`,
@@ -297,7 +299,7 @@ export function createGridOverlay(gridAnalyzer: GridAnalyzer): HTMLElement {
     box-sizing: border-box;
   `;
 
-  console.log('  🎨 Applied styles:', {
+  Debug.log('OVERLAY', '  🎨 Applied styles:', {
     position: 'fixed',
     zIndex: Z_INDEX.CALENDAR_OVERLAY_ACTIVE,
     pointerEvents: 'none (initially)',
@@ -306,23 +308,23 @@ export function createGridOverlay(gridAnalyzer: GridAnalyzer): HTMLElement {
 
   // bodyに直接追加（親要素に依存しない）
   document.body.appendChild(overlay);
-  console.log('  ✅ Appended overlay to document.body');
+  Debug.log('OVERLAY', '  ✅ Appended overlay to document.body');
 
   // 追加後の検証
   const addedOverlay = document.querySelector(`.${CSS_CLASSES.GRID_OVERLAY}`);
   if (addedOverlay) {
     const rect = addedOverlay.getBoundingClientRect();
-    console.log('  ✅ Overlay verified in DOM:', {
+    Debug.log('OVERLAY', '  ✅ Overlay verified in DOM:', {
       width: rect.width,
       height: rect.height,
       top: rect.top,
       left: rect.left
     });
   } else {
-    console.error('  ❌ Overlay not found in DOM after appending!');
+    Debug.error('OVERLAY', '  ❌ Overlay not found in DOM after appending!');
   }
 
-  console.log('🎨 [Overlay] ========================================');
+  Debug.log('OVERLAY', '🎨 ========================================');
   return overlay;
 }
 
@@ -338,10 +340,10 @@ export function createGridOverlay(gridAnalyzer: GridAnalyzer): HTMLElement {
  * @param gridAnalyzer - グリッド解析インスタンス
  */
 export function showGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer): void {
-  console.log('🟢 [Overlay] ========== Showing Grid Overlay ==========');
+  Debug.log('OVERLAY', '🟢 ========== Showing Grid Overlay ==========');
 
   // 現在の状態を記録
-  console.log('  📊 Before change:', {
+  Debug.log('OVERLAY', '  📊 Before change:', {
     opacity: overlay.style.opacity,
     pointerEvents: overlay.style.pointerEvents,
     background: overlay.style.background,
@@ -355,7 +357,7 @@ export function showGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer
   overlay.style.background = COLORS.OVERLAY.CALENDAR_BG;
   overlay.style.cursor = 'crosshair';
 
-  console.log('  ✅ Overlay styles updated:', {
+  Debug.log('OVERLAY', '  ✅ Overlay styles updated:', {
     opacity: '1',
     pointerEvents: 'auto',
     background: COLORS.OVERLAY.CALENDAR_BG,
@@ -364,7 +366,7 @@ export function showGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer
 
   // 実際に適用されたスタイルを検証
   const computedStyle = window.getComputedStyle(overlay);
-  console.log('  🔍 Computed styles:', {
+  Debug.log('OVERLAY', '  🔍 Computed styles:', {
     opacity: computedStyle.opacity,
     pointerEvents: computedStyle.pointerEvents,
     display: computedStyle.display,
@@ -375,16 +377,16 @@ export function showGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer
 
   // Google Calendarのグリッド要素を無効化
   const columns = gridAnalyzer.getColumns();
-  console.log(`  🔒 Disabling ${columns.length} Google Calendar grid columns...`);
+  Debug.log('OVERLAY', `  🔒 Disabling ${columns.length} Google Calendar grid columns...`);
 
   columns.forEach((column, index) => {
     const prevPointerEvents = column.element.style.pointerEvents;
     column.element.style.pointerEvents = 'none';
-    console.log(`    ├─ Column ${index + 1} (${column.dateKey}): "${prevPointerEvents}" → "none"`);
+    Debug.log('OVERLAY', `    ├─ Column ${index + 1} (${column.dateKey}): "${prevPointerEvents}" → "none"`);
   });
 
-  console.log('  ✅ Selection mode ON: overlay visible, grid columns disabled');
-  console.log('🟢 [Overlay] ==========================================');
+  Debug.log('OVERLAY', '  ✅ Selection mode ON: overlay visible, grid columns disabled');
+  Debug.log('OVERLAY', '🟢 ==========================================');
 }
 
 /**
@@ -396,10 +398,10 @@ export function showGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer
  * @param gridAnalyzer - グリッド解析インスタンス
  */
 export function hideGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer): void {
-  console.log('🔴 [Overlay] ========== Hiding Grid Overlay ==========');
+  Debug.log('OVERLAY', '🔴 ========== Hiding Grid Overlay ==========');
 
   // 現在の状態を記録
-  console.log('  📊 Before change:', {
+  Debug.log('OVERLAY', '  📊 Before change:', {
     opacity: overlay.style.opacity,
     pointerEvents: overlay.style.pointerEvents,
     background: overlay.style.background
@@ -411,7 +413,7 @@ export function hideGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer
   overlay.style.background = 'transparent';
   overlay.style.cursor = '';
 
-  console.log('  ✅ Overlay styles updated:', {
+  Debug.log('OVERLAY', '  ✅ Overlay styles updated:', {
     opacity: '0',
     pointerEvents: 'none',
     background: 'transparent',
@@ -420,14 +422,14 @@ export function hideGridOverlay(overlay: HTMLElement, gridAnalyzer: GridAnalyzer
 
   // Google Calendarのグリッド要素を再度有効化
   const columns = gridAnalyzer.getColumns();
-  console.log(`  🔓 Re-enabling ${columns.length} Google Calendar grid columns...`);
+  Debug.log('OVERLAY', `  🔓 Re-enabling ${columns.length} Google Calendar grid columns...`);
 
   columns.forEach((column, index) => {
     const prevPointerEvents = column.element.style.pointerEvents;
     column.element.style.pointerEvents = '';
-    console.log(`    ├─ Column ${index + 1} (${column.dateKey}): "${prevPointerEvents}" → "" (default)`);
+    Debug.log('OVERLAY', `    ├─ Column ${index + 1} (${column.dateKey}): "${prevPointerEvents}" → "" (default)`);
   });
 
-  console.log('  ✅ Selection mode OFF: overlay hidden, grid columns re-enabled');
-  console.log('🔴 [Overlay] ==========================================');
+  Debug.log('OVERLAY', '  ✅ Selection mode OFF: overlay hidden, grid columns re-enabled');
+  Debug.log('OVERLAY', '🔴 ==========================================');
 }
