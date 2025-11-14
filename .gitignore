@@ -62,3 +62,6 @@ node_modules/
 
 # Build output
 dist/
+
+# Debug files
+debug-*.js
