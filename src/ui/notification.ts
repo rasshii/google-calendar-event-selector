@@ -2,7 +2,7 @@
  * 通知UI
  */
 
-import { CONFIG } from '@/config';
+import { CONFIG, COLORS, Z_INDEX } from '@/config';
 
 /**
  * エラー通知を表示
@@ -13,12 +13,12 @@ export function showErrorNotification(message: string): void {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: #f44336;
+    background: ${COLORS.NOTIFICATION.ERROR_BG};
     color: white;
     padding: 12px 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: 10001;
+    box-shadow: 0 4px 12px ${COLORS.NOTIFICATION.SHADOW};
+    z-index: ${Z_INDEX.NOTIFICATION};
     font-family: 'Roboto', sans-serif;
     font-size: 14px;
     animation: slideIn 0.3s ease-out;

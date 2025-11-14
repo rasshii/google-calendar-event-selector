@@ -8,6 +8,7 @@ import { GridAnalyzer } from './grid-analyzer';
 import { SlotManager } from './slot-manager';
 import { SelectionModeManager } from './selection-mode-manager';
 import { updateTempOverlay, removeTempOverlay, createSelectionOverlay } from '@/ui/overlay';
+import { isEventTargetInPanel } from '@/utils/dom';
 
 export class DragHandler {
   private dragState: DragState = {
@@ -64,6 +65,9 @@ export class DragHandler {
   private handleMouseDown = (e: MouseEvent): void => {
     // 選択モードがOFFの場合は何もしない
     if (!this.selectionModeManager.isSelectionModeActive()) return;
+
+    // パネル内のクリックは無視（ボタン操作を許可）
+    if (isEventTargetInPanel(e.target)) return;
 
     // パネルドラッグ中は無視
     if (this.panelDragState.isDragging) return;

@@ -105,10 +105,41 @@ export class GridAnalyzer {
     return null;
   }
 
+  /**
+   * 1時間あたりのピクセル高さを取得
+   *
+   * Google Calendarのグリッドにおける1時間分の高さ（ピクセル）を返します。
+   * この値は選択範囲の位置計算に使用されます。
+   *
+   * @returns 1時間あたりのピクセル高さ
+   *
+   * @example
+   * ```typescript
+   * const hourHeight = gridAnalyzer.getHourHeight(); // 48
+   * const pixelsFor30Min = hourHeight / 2; // 24
+   * ```
+   */
   getHourHeight(): number {
     return this.gridCache.hourHeight;
   }
 
+  /**
+   * カレンダーグリッドの全日付列を取得
+   *
+   * 週表示または日表示のカレンダーグリッドにおける、
+   * 全ての日付列（カラム）の情報を配列で返します。
+   * 各列には日付、位置、幅などの情報が含まれます。
+   *
+   * @returns 日付列の配列
+   *
+   * @example
+   * ```typescript
+   * const columns = gridAnalyzer.getColumns();
+   * columns.forEach(col => {
+   *   console.log(`Date: ${col.date}, Width: ${col.width}px`);
+   * });
+   * ```
+   */
   getColumns(): GridColumn[] {
     return this.gridCache.columns;
   }

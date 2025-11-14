@@ -2,6 +2,8 @@
  * 型定義
  */
 
+import type { SlotManager } from '@/core/slot-manager';
+
 export type Locale = 'ja' | 'en';
 
 export interface TimeSlot {
@@ -67,3 +69,18 @@ export interface Messages {
 }
 
 export type MessagesMap = Record<Locale, Messages>;
+
+/**
+ * Windowオブジェクトの型拡張
+ * 拡張機能が使用するグローバルプロパティの型定義
+ */
+declare global {
+  interface Window {
+    /**
+     * SlotManagerのグローバルインスタンス
+     * UIパネルとコアロジック間の通信に使用
+     * @internal
+     */
+    __slotManager?: SlotManager;
+  }
+}

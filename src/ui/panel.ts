@@ -157,7 +157,7 @@ function setupPanelListeners(
   // コピー・クリアボタン（グローバルハンドラーで設定）
   copyBtn.addEventListener('click', copySelectedSlots);
   clearBtn.addEventListener('click', () => {
-    const slotManager = (window as any).__slotManager as SlotManager;
+    const slotManager = window.__slotManager;
     if (slotManager) {
       slotManager.clearAll();
     }
@@ -301,7 +301,7 @@ function createSlotItem(slot: TimeSlot, index: number, slotManager: SlotManager)
  * 選択されたスロットをクリップボードにコピー
  */
 function copySelectedSlots(): void {
-  const slotManager = (window as any).__slotManager as SlotManager;
+  const slotManager = window.__slotManager;
   if (!slotManager) return;
 
   const slots = slotManager.getSlots();

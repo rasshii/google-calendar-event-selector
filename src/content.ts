@@ -34,20 +34,20 @@ class TimeSlotSelectorApp {
     this.selectionModeManager = new SelectionModeManager();
     this.dragHandler = new DragHandler(this.gridAnalyzer, this.slotManager, this.selectionModeManager);
 
-    // グローバルアクセス用（パネルから参照）
-    (window as any).__slotManager = this.slotManager;
+    // Global access for panel reference
+    window.__slotManager = this.slotManager;
   }
 
   /**
-   * 初期化
+   * Initialize the extension
    */
   async init(): Promise<void> {
-    // ロケールを検出
+    // Detect locale
     const locale = detectLocale();
     setLocale(locale);
     console.log('Detected locale:', locale);
 
-    // カレンダーが読み込まれるまで待機
+    // Wait for calendar to load
     const initialized = await this.waitForCalendar();
 
     if (!initialized) {
@@ -56,31 +56,31 @@ class TimeSlotSelectorApp {
     }
 
     try {
-      // グリッド解析
+      // Analyze grid
       const gridAnalyzed = this.gridAnalyzer.analyze();
       if (!gridAnalyzed) {
         throw new Error('Failed to analyze calendar grid');
       }
 
-      // UIパネルを作成
+      // Create UI panel
       this.panel = createUIPanel(this.dragHandler.getPanelDragState(), this.selectionModeManager);
 
-      // カレンダーオーバーレイを作成
+      // Create calendar overlay
       this.calendarOverlay = createCalendarOverlay();
 
-      // 選択モードの変更を監視してオーバーレイを切り替え
+      // Listen to selection mode changes and toggle overlay
       this.selectionModeManager.addListener((isActive) => {
         if (this.calendarOverlay) {
           toggleCalendarOverlay(this.calendarOverlay, isActive);
         }
       });
 
-      // ドラッグリスナーをアタッチ
+      // Attach drag listeners
       this.dragHandler.attachListeners();
 
       console.log(getMessage('initSuccess'));
     } catch (error) {
-      console.error('初期化に失敗しました:', error);
+      console.error('Extension initialization failed:', error);
       showErrorNotification(getMessage('errorInitFailed'));
     }
   }

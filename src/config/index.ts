@@ -63,6 +63,55 @@ export const CSS_CLASSES = {
   CALENDAR_OVERLAY: 'gcal-calendar-overlay',
 } as const;
 
+/**
+ * UI要素の色定数
+ */
+export const COLORS = {
+  /** 拡張機能のプライマリカラー */
+  PRIMARY: '#667eea',
+  /** 拡張機能のセカンダリカラー */
+  SECONDARY: '#764ba2',
+
+  /** オーバーレイ関連の色 */
+  OVERLAY: {
+    /** 一時的な選択範囲の背景色 */
+    TEMP_BG: 'rgba(102, 126, 234, 0.3)',
+    /** 確定した選択範囲の背景色 */
+    SELECTION_BG: 'rgba(102, 126, 234, 0.25)',
+    /** カレンダーオーバーレイの背景色（選択モードON時） */
+    CALENDAR_BG: 'rgba(102, 126, 234, 0.03)',
+    /** オーバーレイのボーダー色 */
+    BORDER: '#667eea',
+  },
+
+  /** 通知関連の色 */
+  NOTIFICATION: {
+    /** エラー通知の背景色 */
+    ERROR_BG: '#f44336',
+    /** 成功通知の背景色 */
+    SUCCESS_BG: '#34A853',
+    /** 通知のシャドウ色 */
+    SHADOW: 'rgba(0,0,0,0.3)',
+  },
+} as const;
+
+/**
+ * z-index階層定数
+ * より大きい値ほど前面に表示される
+ */
+export const Z_INDEX = {
+  /** 確定した選択範囲のオーバーレイ */
+  SELECTION_OVERLAY: 999,
+  /** ドラッグ中の一時的なオーバーレイ */
+  TEMP_OVERLAY: 1000,
+  /** パネルUI */
+  PANEL: 10000,
+  /** 通知 */
+  NOTIFICATION: 10001,
+  /** カレンダーオーバーレイ（選択モードON時） - Google Calendarの要素より前面 */
+  CALENDAR_OVERLAY_ACTIVE: 100000,
+} as const;
+
 export const MESSAGES: MessagesMap = {
   ja: {
     panelTitle: '📅 時間選択',

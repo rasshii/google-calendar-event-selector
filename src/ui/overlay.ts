@@ -3,8 +3,9 @@
  */
 
 import type { TimeSlot, GridColumn } from '@/types';
-import { CSS_CLASSES } from '@/config';
+import { CSS_CLASSES, COLORS, Z_INDEX } from '@/config';
 import { GridAnalyzer } from '@/core/grid-analyzer';
+import { isEventTargetInPanel } from '@/utils/dom';
 
 /**
  * 一時的な選択オーバーレイを作成・更新
@@ -28,10 +29,10 @@ export function updateTempOverlay(
     overlay.className = CSS_CLASSES.TEMP_OVERLAY;
     overlay.style.cssText = `
       position: absolute;
-      background: rgba(102, 126, 234, 0.3);
-      border: 2px solid #667eea;
+      background: ${COLORS.OVERLAY.TEMP_BG};
+      border: 2px solid ${COLORS.OVERLAY.BORDER};
       pointer-events: none;
-      z-index: 1000;
+      z-index: ${Z_INDEX.TEMP_OVERLAY};
       border-radius: 4px;
     `;
     column.element.appendChild(overlay);
@@ -79,10 +80,10 @@ export function createSelectionOverlay(
     top: ${top}px;
     width: 100%;
     height: ${height}px;
-    background: rgba(102, 126, 234, 0.25);
-    border: 2px solid #667eea;
+    background: ${COLORS.OVERLAY.SELECTION_BG};
+    border: 2px solid ${COLORS.OVERLAY.BORDER};
     pointer-events: none;
-    z-index: 999;
+    z-index: ${Z_INDEX.SELECTION_OVERLAY};
     border-radius: 4px;
     box-sizing: border-box;
   `;
@@ -93,20 +94,44 @@ export function createSelectionOverlay(
 
 /**
  * カレンダー全体のオーバーレイを作成（選択モード表示用）
+ *
  * 選択モードON時にGoogle Calendarのデフォルト動作を完全にブロックする
+ * フルスクリーンのオーバーレイを作成し、以下の機能を提供：
+ *
+ * - **イベントインターセプション**: mousedown, click, pointerdown, touchstartイベントを
+ *   キャプチャフェーズで捕捉し、Google Calendarのイベントハンドラーより先に実行
+ * - **パネル操作の保護**: 拡張機能のパネル内のクリックは許可し、カレンダーエリアのみブロック
+ * - **z-index制御**: activeクラス時にz-index: 100000でGoogle Calendarの要素より前面に配置
+ *
+ * @returns 作成されたオーバーレイ要素
+ *
+ * @example
+ * ```typescript
+ * const overlay = createCalendarOverlay();
+ * toggleCalendarOverlay(overlay, true); // 選択モードON
+ * ```
+ *
+ * @see {@link toggleCalendarOverlay} オーバーレイの表示/非表示を切り替える
  */
 export function createCalendarOverlay(): HTMLElement {
   const overlay = document.createElement('div');
   overlay.className = CSS_CLASSES.CALENDAR_OVERLAY;
 
-  // イベントをインターセプトする関数
-  // オーバーレイがactiveクラスを持つ場合、全てのイベントを停止
+  /**
+   * イベントをインターセプトする関数
+   * パネル内のクリックは許可し、カレンダーエリアのみブロック
+   */
   const interceptEvent = (e: Event) => {
-    if (overlay.classList.contains('active')) {
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      e.preventDefault();
-    }
+    // オーバーレイが非アクティブなら何もしない
+    if (!overlay.classList.contains('active')) return;
+
+    // パネル内のクリックは許可（トグルボタンなどの操作を可能にする）
+    if (isEventTargetInPanel(e.target)) return;
+
+    // カレンダーエリアのイベントは完全にブロック
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    e.preventDefault();
   };
 
   // 複数のイベントタイプをインターセプト（キャプチャフェーズで最優先実行）
